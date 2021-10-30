@@ -1,0 +1,139 @@
+﻿{
+  "blocks": [
+    {
+      "id": 0,
+      "name": "Air",
+      "solid": false,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": null,
+        "bottom": null,
+        "front": null,
+        "back": null,
+        "left": null,
+        "right": null
+      }
+    },
+    {
+      "id": 1,
+      "name": "Ground",
+      "solid": true,
+      "fluid": false,
+      "soil": true,
+      "faces": {
+        "top": "Ground",
+        "bottom": "Ground",
+        "front": "Ground",
+        "back": "Ground",
+        "left": "Ground",
+        "right": "Ground"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Grass",
+      "solid": true,
+      "fluid": false,
+      "soil": true,
+      "faces": {
+        "top": "Grass",
+        "bottom": "Ground",
+        "front": "GrassToGround",
+        "back": "GrassToGround",
+        "left": "GrassToGround",
+        "right": "GrassToGround"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Water",
+      "solid": false,
+      "fluid": true,
+      "soil": false,
+      "faces": {
+        "top": "Water",
+        "bottom": null,
+        "front": null,
+        "back": null,
+        "left": null,
+        "right": null
+      }
+    },
+    {
+      "id": 4,
+      "name": "Stone",
+      "solid": true,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": "Stone",
+        "bottom": "Stone",
+        "front": "Stone",
+        "back": "Stone",
+        "left": "Stone",
+        "right": "Stone"
+      }
+    },
+    {
+      "id": 5,
+      "name": "Snow",
+      "solid": true,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": "Snow",
+        "bottom": "Stone",
+        "front": "SnowToStone",
+        "back": "SnowToStone",
+        "left": "SnowToStone",
+        "right": "SnowToStone"
+      }
+    },
+    {
+      "id": 6,
+      "name": "Wood",
+      "solid": true,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": "WoodRings",
+        "bottom": "WoodRings",
+        "front": "Wood",
+        "back": "Wood",
+        "left": "Wood",
+        "right": "Wood"
+      }
+    },
+    {
+      "id": 7,
+      "name": "Leaves",
+      "solid": true,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": "Leaves",
+        "bottom": "Leaves",
+        "front": "Leaves",
+        "back": "Leaves",
+        "left": "Leaves",
+        "right": "Leaves"
+      }
+    },
+    {
+      "id": 8,
+      "name": "Leaves2",
+      "solid": true,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": "Leaves2",
+        "bottom": "Leaves2",
+        "front": "Leaves2",
+        "back": "Leaves2",
+        "left": "Leaves2",
+        "right": "Leaves2"
+      }
+    }
+  ]
+}
