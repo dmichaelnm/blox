@@ -32,6 +32,8 @@ namespace Blox.Environment.Config
                 reader.NextValue(out object value);
                 if (value is double doubleValue)
                     material.SetFloat(propertyName, (float)doubleValue);
+                else if (value is long longValue)
+                    material.SetFloat(propertyName, (float)Convert.ToDouble(longValue));
                 else if (value is string stringValue)
                 {
                     if (stringValue.Length > 0 && stringValue[0] == '@')
