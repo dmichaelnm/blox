@@ -70,12 +70,15 @@ namespace Blox.Environment
         [Header("Tree Properties")]
         // ----------------------------------
         public int maxTreeCount = 50;
-
         public NoiseParameter treeNoiseParameter;
         [Range(0f, 1f)] public float treeThreshold = 0.5f;
         public int minTreeHeight = 4;
         public int maxTreeHeight = 8;
 
+        [Header("Resources Probabilities")]
+        // ----------------------------------
+        [Range(0f, 1f)] public float coalProbability = 0.2f;
+        
         // ----------------------------------
         public bool initialized { get; private set; }
 
@@ -145,6 +148,7 @@ namespace Blox.Environment
 
         private void Awake()
         {
+            RemoveTempCacheFiles();
             Configuration.GetInstance();
             m_ChunkDataCache = new Dictionary<string, ChunkData>();
             m_ChunkGenerationJobs = new Queue<JobInfo<IChunkDataProvider>>();
@@ -234,7 +238,8 @@ namespace Blox.Environment
                                 treeNoiseParameter,
                                 treeThreshold,
                                 minTreeHeight,
-                                maxTreeHeight
+                                maxTreeHeight,
+                                coalProbability
                             );
                             info.job = job;
                             info.handle = job.Schedule();
@@ -418,6 +423,14 @@ namespace Blox.Environment
                           ", Time = " +
                           duration + "ms");
             }
+        }
+
+        private void RemoveTempCacheFiles()
+        {
+            var files = Directory.GetFiles(GameConstants.TemporaryPath);
+            foreach (var file in files)
+                File.Delete(file);
+            Debug.Log("Removes " + files.Length + " temporary files.");
         }
     }
 }

@@ -418,11 +418,11 @@ MonoBehaviour:
   terrainNoiseParameter:
     noiseScale: 128
     seed: {x: 1000, y: 1000}
-    octaves: 2
-    frequency: 2
-    redistribution: 2
+    octaves: 3
+    frequency: 3
+    redistribution: 3
     redistributionScale: 1
-  terrainAmplitude: 20
+  terrainAmplitude: 25
   waterNoiseParameter:
     noiseScale: 256
     seed: {x: 2000, y: 2000}
@@ -430,7 +430,7 @@ MonoBehaviour:
     frequency: 1
     redistribution: 1
     redistributionScale: 1
-  waterAmplitude: 5
+  waterAmplitude: 7
   waterLineOffset: -1
   stoneNoiseParameter:
     noiseScale: 64
@@ -455,6 +455,7 @@ MonoBehaviour:
   treeThreshold: 0.5
   minTreeHeight: 4
   maxTreeHeight: 8
+  coalProbability: 0.01
 --- !u!4 &93790085
 Transform:
   m_ObjectHideFlags: 0

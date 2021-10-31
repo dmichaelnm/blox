@@ -34,6 +34,9 @@ namespace Blox.Environment.Jobs
         private int m_MinTreeHeight;
         private int m_MaxTreeHeight;
 
+        // probabilities
+        private float m_CoalProbability;
+
         // ----------------------------------
         private NativeArray<int> m_BlockTypeIds;
 
@@ -41,7 +44,8 @@ namespace Blox.Environment.Jobs
             NoiseParameter terrainNoiseParameter, float terrainAmplitude, NoiseParameter waterNoiseParameter,
             float waterAmplitude, int waterOffset, NoiseParameter stoneNoiseParameter, float stoneThreshold,
             int stoneLevelRelative, int stoneScattering, int snowLevelRelative, int snowScattering, int maxTreeCount,
-            NoiseParameter treeNoiseParameter, float treeThreshold, int minTreeHeight, int maxTreeHeight)
+            NoiseParameter treeNoiseParameter, float treeThreshold, int minTreeHeight, int maxTreeHeight,
+            float coalProbability)
         {
             m_ChunkSize = size;
             m_ChunkPositionX = position.x;
@@ -64,6 +68,7 @@ namespace Blox.Environment.Jobs
             m_TreeThreshold = treeThreshold;
             m_MinTreeHeight = minTreeHeight;
             m_MaxTreeHeight = maxTreeHeight;
+            m_CoalProbability = coalProbability;
 
             m_BlockTypeIds = new NativeArray<int>(size.size, Allocator.Persistent);
         }
@@ -117,7 +122,13 @@ namespace Blox.Environment.Jobs
                         if (y <= height && y >= snowLevel)
                             m_BlockTypeIds[index] = (int)BlockTypes.Snow;
                         else if (y <= lowerStoneLevel && y <= height || y >= upperStoneLevel && y <= height)
-                            m_BlockTypeIds[index] = (int)BlockTypes.Stone;
+                        {
+                            var coalThreshold = (float)random.NextDouble();
+                            if (coalThreshold < m_CoalProbability)
+                                m_BlockTypeIds[index] = (int)BlockTypes.Coal;
+                            else
+                                m_BlockTypeIds[index] = (int)BlockTypes.Stone;
+                        }
                         else if (y < height)
                             m_BlockTypeIds[index] = (int)BlockTypes.Ground;
                         else if (y == height)
@@ -164,7 +175,10 @@ namespace Blox.Environment.Jobs
                                     var point = new Vector3(px + 0.5f, py, pz + 0.5f);
                                     var distance = (point - center).magnitude;
                                     if (distance <= radius)
-                                        m_BlockTypeIds[index] = (int)BlockTypes.Leaves + leavesType;
+                                    {
+                                        if (m_BlockTypeIds[index] == (int)BlockTypes.Air)
+                                            m_BlockTypeIds[index] = (int)BlockTypes.Leaves + leavesType;
+                                    }
                                 }
                             }
                         }

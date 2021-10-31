@@ -13,7 +13,8 @@ namespace Blox.Environment.Config
         Snow,
         Wood,
         Leaves,
-        Leaves2
+        Leaves2,
+        Coal
     }
     
     public class BlockType
