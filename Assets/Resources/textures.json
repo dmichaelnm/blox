@@ -93,7 +93,9 @@
         "name": "Shader Graphs/BlockFaceShader",
         "properties": {
           "_MainTexture": "@Textures/Blocks/Snow-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Snow-Normal"
+          "_NormalTexture": "@Textures/Blocks/Snow-Normal",
+          "_Metallic": 0.2,
+          "_Smoothness": 0.2
         }
       }
     },
@@ -126,7 +128,9 @@
         "name": "Shader Graphs/BlockFaceShader",
         "properties": {
           "_MainTexture": "@Textures/Blocks/Leaves-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Leaves-Normal"
+          "_NormalTexture": "@Textures/Blocks/Leaves-Normal",
+          "_NormalStrength": 10,
+          "_Smoothness": 0.5
         }
       }
     },
@@ -137,7 +141,22 @@
         "name": "Shader Graphs/BlockFaceShader",
         "properties": {
           "_MainTexture": "@Textures/Blocks/Leaves2-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Leaves-Normal"
+          "_NormalTexture": "@Textures/Blocks/Leaves-Normal",
+          "_NormalStrength": 10,
+          "_Smoothness": 0.5
+        }
+      }
+    },
+    {
+      "id": 11,
+      "name": "Coal",
+      "shader": {
+        "name": "Shader Graphs/BlockFaceShader",
+        "properties": {
+          "_MainTexture": "@Textures/Blocks/Coal-Albedo",
+          "_NormalTexture": "@Textures/Blocks/Coal-Normal",
+          "_Metallic": 0.45,
+          "_Smoothness": 0.78
         }
       }
     }

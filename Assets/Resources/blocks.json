@@ -134,6 +134,21 @@
         "left": "Leaves2",
         "right": "Leaves2"
       }
+    },
+    {
+      "id": 9,
+      "name": "Coal",
+      "solid": true,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": "Coal",
+        "bottom": "Coal",
+        "front": "Coal",
+        "back": "Coal",
+        "left": "Coal",
+        "right": "Coal"
+      }
     }
   ]
 }
