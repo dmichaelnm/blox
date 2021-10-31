@@ -79,57 +79,61 @@ namespace Blox.Player
             {
                 show = true;
 
-                var x = hit.point.x;
-                var y = hit.point.y;
-                var z = hit.point.z;
+                var x = hit.point.x + epsilon;
+                var y = hit.point.y + epsilon;
+                var z = hit.point.z + epsilon;
 
                 var bx = MathUtility.Floor(x) + epsilon;
                 var by = MathUtility.Floor(y) + epsilon;
                 var bz = MathUtility.Floor(z) + epsilon;
 
+                var dx = Mathf.Abs(x - bx);
+                var dy = Mathf.Abs(y - by);
+                var dz = Mathf.Abs(z - bz);
+
                 var cnt = 0;
-                if (x < bx) cnt++;
-                if (y < by) cnt++;
-                if (z < bz) cnt++;
+                if (dx < epsilon) cnt++;
+                if (dy < epsilon) cnt++;
+                if (dz < epsilon) cnt++;
 
                 if (cnt <= 1)
                 {
-                    if (ray.direction.y < 0f && y < by)
+                    if (ray.direction.y < 0f && dy < epsilon)
                     {
                         // Top
                         position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) - 0.5f,
                             MathUtility.Floor(z) + 0.5f);
                         face = BlockFace.Top;
                     }
-                    else if (ray.direction.y > 0f && y < by)
+                    else if (ray.direction.y > 0f && dy < epsilon)
                     {
                         // Bottom
                         position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
                             MathUtility.Floor(z) + 0.5f);
                         face = BlockFace.Bottom;
                     }
-                    else if (ray.direction.z > 0f && z < bz)
+                    else if (ray.direction.z > 0f && dz < epsilon)
                     {
                         // Front
                         position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
                             MathUtility.Floor(z) + 0.5f);
                         face = BlockFace.Front;
                     }
-                    else if (ray.direction.z < 0f && z < bz)
+                    else if (ray.direction.z < 0f && dz < epsilon)
                     {
                         // Back
                         position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
                             MathUtility.Floor(z) - 0.5f);
                         face = BlockFace.Back;
                     }
-                    else if (ray.direction.x > 0f && x < bx)
+                    else if (ray.direction.x > 0f && dx < epsilon)
                     {
                         // Left
                         position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
                             MathUtility.Floor(z) + 0.5f);
                         face = BlockFace.Left;
                     }
-                    else if (ray.direction.x < 0f && x < bx)
+                    else if (ray.direction.x < 0f && dx < epsilon)
                     {
                         // Right
                         position = new Vector3(MathUtility.Floor(x) - 0.5f, MathUtility.Floor(y) + 0.5f,
