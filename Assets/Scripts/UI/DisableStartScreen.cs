@@ -8,7 +8,7 @@ namespace Blox.UI
     {
         private Image m_StartImage;
         
-        public void OnChunkManagerInitialized()
+        private void OnChunkManagerInitialized()
         {
             m_StartImage.enabled = false;
         }

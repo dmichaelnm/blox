@@ -2,7 +2,12 @@
   "blocks": [
     {
       "id": 0,
+      "baseId": 0,
       "name": "Air",
+      "icons": {
+        "normal": null,
+        "selected": null
+      },
       "solid": false,
       "fluid": false,
       "soil": false,
@@ -17,7 +22,12 @@
     },
     {
       "id": 1,
+      "baseId": 1,
       "name": "Ground",
+      "icons": {
+        "normal": "Sprites/Blocks/Ground",
+        "selected": "Sprites/Blocks/Ground_Selected"
+      },
       "solid": true,
       "fluid": false,
       "soil": true,
@@ -32,7 +42,12 @@
     },
     {
       "id": 2,
+      "baseId": 1,
       "name": "Grass",
+      "icons": {
+        "normal": null,
+        "selected": null
+      },
       "solid": true,
       "fluid": false,
       "soil": true,
@@ -47,7 +62,12 @@
     },
     {
       "id": 3,
+      "baseId": 3,
       "name": "Water",
+      "icons": {
+        "normal": null,
+        "selected": null
+      },
       "solid": false,
       "fluid": true,
       "soil": false,
@@ -62,7 +82,12 @@
     },
     {
       "id": 4,
+      "baseId": 4,
       "name": "Stone",
+      "icons": {
+        "normal": "Sprites/Blocks/Stone",
+        "selected": "Sprites/Blocks/Stone_Selected"
+      },
       "solid": true,
       "fluid": false,
       "soil": false,
@@ -77,7 +102,12 @@
     },
     {
       "id": 5,
+      "baseId": 4,
       "name": "Snow",
+      "icons": {
+        "normal": null,
+        "selected": null
+      },
       "solid": true,
       "fluid": false,
       "soil": false,
@@ -92,7 +122,12 @@
     },
     {
       "id": 6,
+      "baseId": 6,
       "name": "Wood",
+      "icons": {
+        "normal": "Sprites/Blocks/Wood",
+        "selected": "Sprites/Blocks/Wood_Selected"
+      },
       "solid": true,
       "fluid": false,
       "soil": false,
@@ -107,7 +142,12 @@
     },
     {
       "id": 7,
+      "baseId": 7,
       "name": "Leaves",
+      "icons": {
+        "normal": "Sprites/Blocks/Leaves",
+        "selected": "Sprites/Blocks/Leaves_Selected"
+      },
       "solid": true,
       "fluid": false,
       "soil": false,
@@ -122,7 +162,12 @@
     },
     {
       "id": 8,
+      "baseId": 8,
       "name": "Leaves2",
+      "icons": {
+        "normal": "Sprites/Blocks/Leaves2",
+        "selected": "Sprites/Blocks/Leaves2_Selected"
+      },
       "solid": true,
       "fluid": false,
       "soil": false,
@@ -137,7 +182,12 @@
     },
     {
       "id": 9,
+      "baseId": 9,
       "name": "Coal",
+      "icons": {
+        "normal": "Sprites/Blocks/Coal",
+        "selected": "Sprites/Blocks/Coal_Selected"
+      },
       "solid": true,
       "fluid": false,
       "soil": false,

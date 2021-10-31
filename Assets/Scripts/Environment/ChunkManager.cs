@@ -41,6 +41,11 @@ namespace Blox.Environment
             public JobHandle handle;
         }
 
+        public static ChunkManager GetInstance()
+        {
+            return GameObject.Find("Chunk Manager").GetComponent<ChunkManager>();
+        }
+
         [Header("Chunk Manager Properties")]
         // ----------------------------------
         public ChunkSize chunkSize;
@@ -70,6 +75,7 @@ namespace Blox.Environment
         [Header("Tree Properties")]
         // ----------------------------------
         public int maxTreeCount = 50;
+
         public NoiseParameter treeNoiseParameter;
         [Range(0f, 1f)] public float treeThreshold = 0.5f;
         public int minTreeHeight = 4;
@@ -77,8 +83,9 @@ namespace Blox.Environment
 
         [Header("Resources Probabilities")]
         // ----------------------------------
-        [Range(0f, 1f)] public float coalProbability = 0.2f;
-        
+        [Range(0f, 1f)]
+        public float coalProbability = 0.2f;
+
         // ----------------------------------
         public bool initialized { get; private set; }
 
@@ -113,37 +120,12 @@ namespace Blox.Environment
             LoadChunkData(chunkData.chunkPosition);
         }
 
-        public IEnumerator UpdateChunkMesh(ChunkData chunkData)
+        public void RefreshChunkMesh(ChunkData chunkData, bool async = true)
         {
-            var meshCache = new Dictionary<int, ChunkMesh>();
-            var size = chunkData.chunkSize;
-
-            for (var y = 0; y < size.height; y++)
-            {
-                for (var z = 0; z < size.width; z++)
-                {
-                    for (var x = 0; x < size.width; x++)
-                    {
-                        var type = chunkData[x, y, z];
-                        if (type.isSolid)
-                            CreateTerrainMesh(meshCache, chunkData, x, y, z, type);
-                        if (type.isFluid)
-                            CreateFluidMesh(meshCache, chunkData, x, y, z, type);
-                    }
-                }
-
-                yield return null;
-            }
-
-            var pos = chunkData.chunkPosition;
-            var obj = gameObject.GetChildObject(chunkData.cacheKey, true);
-            obj.transform.parent = transform;
-            obj.transform.position = new Vector3(pos.x * chunkSize.width, 0, pos.z * chunkSize.width);
-
-            var chunk = obj.AddComponent<Chunk>();
-            chunk.chunkPosition = chunkData.chunkPosition;
-
-            chunk.CreateMeshes(meshCache.Values.ToArray());
+            if (async)
+                StartCoroutine(UpdateChunkMeshAsync(chunkData));
+            else
+                UpdateChunkMeshSync(chunkData);
         }
 
         private void Awake()
@@ -312,7 +294,7 @@ namespace Blox.Environment
             if (m_InstantiatingChunks.Count > 0)
             {
                 var chunkData = m_InstantiatingChunks.Dequeue();
-                StartCoroutine(UpdateChunkMesh(chunkData));
+                RefreshChunkMesh(chunkData);
             }
         }
 
@@ -430,12 +412,76 @@ namespace Blox.Environment
             var path = GameConstants.TemporaryPath;
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
-            
+
             var files = Directory.GetFiles(GameConstants.TemporaryPath);
             foreach (var file in files)
                 File.Delete(file);
-            
+
             Debug.Log("Removes " + files.Length + " temporary files.");
+        }
+
+        private IEnumerator UpdateChunkMeshAsync(ChunkData chunkData)
+        {
+            var meshCache = new Dictionary<int, ChunkMesh>();
+            var size = chunkData.chunkSize;
+
+            for (var y = 0; y < size.height; y++)
+            {
+                for (var z = 0; z < size.width; z++)
+                {
+                    for (var x = 0; x < size.width; x++)
+                    {
+                        var type = chunkData[x, y, z];
+                        if (type.isSolid)
+                            CreateTerrainMesh(meshCache, chunkData, x, y, z, type);
+                        if (type.isFluid)
+                            CreateFluidMesh(meshCache, chunkData, x, y, z, type);
+                    }
+                }
+
+                yield return null;
+            }
+
+            var pos = chunkData.chunkPosition;
+            var obj = gameObject.GetChildObject(chunkData.cacheKey, true);
+            obj.transform.parent = transform;
+            obj.transform.position = new Vector3(pos.x * chunkSize.width, 0, pos.z * chunkSize.width);
+
+            var chunk = obj.AddComponent<Chunk>();
+            chunk.chunkPosition = chunkData.chunkPosition;
+
+            chunk.CreateMeshes(meshCache.Values.ToArray());
+        }
+
+        private void UpdateChunkMeshSync(ChunkData chunkData)
+        {
+            var meshCache = new Dictionary<int, ChunkMesh>();
+            var size = chunkData.chunkSize;
+
+            for (var y = 0; y < size.height; y++)
+            {
+                for (var z = 0; z < size.width; z++)
+                {
+                    for (var x = 0; x < size.width; x++)
+                    {
+                        var type = chunkData[x, y, z];
+                        if (type.isSolid)
+                            CreateTerrainMesh(meshCache, chunkData, x, y, z, type);
+                        if (type.isFluid)
+                            CreateFluidMesh(meshCache, chunkData, x, y, z, type);
+                    }
+                }
+            }
+
+            var pos = chunkData.chunkPosition;
+            var obj = gameObject.GetChildObject(chunkData.cacheKey, true);
+            obj.transform.parent = transform;
+            obj.transform.position = new Vector3(pos.x * chunkSize.width, 0, pos.z * chunkSize.width);
+
+            var chunk = obj.AddComponent<Chunk>();
+            chunk.chunkPosition = chunkData.chunkPosition;
+
+            chunk.CreateMeshes(meshCache.Values.ToArray());
         }
     }
 }

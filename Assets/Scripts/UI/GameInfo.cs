@@ -53,7 +53,7 @@ namespace Blox2.UI
         {
             m_UnderwaterValue.text = underwater ? "yes" : "no";
         }
-
+        
         private void Awake()
         {
             m_Items = new List<MonoBehaviour>();

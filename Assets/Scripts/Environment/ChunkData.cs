@@ -129,5 +129,15 @@ namespace Blox.Environment
             }
             File.WriteAllBytes(path, bytes);
         }
+
+        public void SetBlockType(Vector3Int local, int blockTypeId)
+        {
+            SetBlockType(local.x, local.y, local.z, blockTypeId);    
+        }
+        
+        public void SetBlockType(int x, int y, int z, int blockTypeId)
+        {
+            m_BlockDataItems[chunkSize.ToIndex(x, y, z)] = blockTypeId;
+        }
     }
 }

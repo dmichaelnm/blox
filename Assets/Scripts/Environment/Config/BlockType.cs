@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Blox.Utility;
+using UnityEngine;
 
 namespace Blox.Environment.Config
 {
@@ -20,7 +21,10 @@ namespace Blox.Environment.Config
     public class BlockType
     {
         public readonly int id;
+        public readonly int baseId;
         public readonly string name;
+        public readonly Sprite iconNormal;
+        public readonly Sprite iconSelected;
         public readonly bool isSolid;
         public readonly bool isFluid;
         public readonly bool isSoil;
@@ -31,7 +35,17 @@ namespace Blox.Environment.Config
         public BlockType(JsonTextReader reader)
         {
             reader.NextPropertyValue("id", out id);
+            reader.NextPropertyValue("baseId", out baseId);
             reader.NextPropertyValue("name", out name);
+
+            reader.NextPropertyNameIs("icons");
+            reader.NextTokenIsStartObject();
+            reader.NextPropertyValue("normal", out string spriteNormalPath);
+            reader.NextPropertyValue("selected", out string spriteSelectedPath);
+            reader.NextTokenIsEndObject();
+            iconNormal = LoadSprite(spriteNormalPath);
+            iconSelected = LoadSprite(spriteSelectedPath);
+            
             reader.NextPropertyValue("solid", out isSolid);
             reader.NextPropertyValue("fluid", out isFluid);
             reader.NextPropertyValue("soil", out isSoil);
@@ -46,6 +60,7 @@ namespace Blox.Environment.Config
             reader.NextPropertyValue("left", out m_FaceTextureNames[4]);
             reader.NextPropertyValue("right", out m_FaceTextureNames[5]);
             reader.NextTokenIsEndObject();
+
         }
 
         public TextureType GetTextureType(BlockFace face)
@@ -73,6 +88,18 @@ namespace Blox.Environment.Config
         {
             return "BlockType[Id=" + id + ", Name=" + name + ", Solid=" + isSoil + ", Fluid=" + isFluid + ", Soil=" +
                    isSoil + ", Empty=" + isEmpty + "]";
+        }
+
+        private Sprite LoadSprite(string path)
+        {
+            if (path != null)
+            {
+                var icon = Resources.Load<Sprite>(path);
+                if (icon == null)
+                    Debug.LogWarning("Sprite not found: " + path);
+                return icon;
+            }
+            return null;
         }
     }
 }
