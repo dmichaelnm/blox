@@ -427,9 +427,14 @@ namespace Blox.Environment
 
         private void RemoveTempCacheFiles()
         {
+            var path = GameConstants.TemporaryPath;
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            
             var files = Directory.GetFiles(GameConstants.TemporaryPath);
             foreach (var file in files)
                 File.Delete(file);
+            
             Debug.Log("Removes " + files.Length + " temporary files.");
         }
     }
