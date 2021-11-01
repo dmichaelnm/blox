@@ -129,8 +129,6 @@
         "properties": {
           "_MainTexture": "@Textures/Blocks/Leaves-Albedo",
           "_NormalTexture": "@Textures/Blocks/Leaves-Normal",
-          "_NormalStrength": 10,
-          "_Smoothness": 0.5
         }
       }
     },
@@ -142,8 +140,6 @@
         "properties": {
           "_MainTexture": "@Textures/Blocks/Leaves2-Albedo",
           "_NormalTexture": "@Textures/Blocks/Leaves-Normal",
-          "_NormalStrength": 10,
-          "_Smoothness": 0.5
         }
       }
     },
@@ -156,8 +152,18 @@
           "_MainTexture": "@Textures/Blocks/Coal-Albedo",
           "_NormalTexture": "@Textures/Blocks/Coal-Normal",
           "_Metallic": 0.66,
-          "_Smoothness": 0.11,
-          "_NormalStrength": 4
+          "_Smoothness": 0.11
+        }
+      }
+    },
+    {
+      "id": 12,
+      "name": "Sand",
+      "shader": {
+        "name": "Shader Graphs/BlockFaceShader",
+        "properties": {
+          "_MainTexture": "@Textures/Blocks/Sand-Albedo",
+          "_NormalTexture": "@Textures/Blocks/Sand-Normal"
         }
       }
     }

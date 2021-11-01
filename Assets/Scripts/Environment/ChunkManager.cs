@@ -50,11 +50,11 @@ namespace Blox.Environment
         [Header("Chunk Manager Properties")]
         // ----------------------------------
         public ChunkSize chunkSize;
-
         public int visibleChunks = 2;
         public float purgeTimeout = 60f;
         public float purgeInterval = 5f;
         public float waterOffset = -0.1f;
+        public bool lockMouse;
 
         [Header("Terrain Properties")]
         // ----------------------------------
@@ -131,7 +131,9 @@ namespace Blox.Environment
 
         private void Awake()
         {
-            Cursor.lockState = CursorLockMode.Locked;
+            if (lockMouse)
+                Cursor.lockState = CursorLockMode.Locked;
+            
             RemoveTempCacheFiles();
             Configuration.GetInstance();
             m_ChunkDataCache = new Dictionary<string, ChunkData>();

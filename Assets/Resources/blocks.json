@@ -199,6 +199,26 @@
         "left": "Coal",
         "right": "Coal"
       }
+    },
+    {
+      "id": 10,
+      "baseId": 10,
+      "name": "Sand",
+      "icons": {
+        "normal": "Sprites/Blocks/Sand",
+        "selected": "Sprites/Blocks/Sand_Selected"
+      },
+      "solid": true,
+      "fluid": false,
+      "soil": false,
+      "faces": {
+        "top": "Sand",
+        "bottom": "Sand",
+        "front": "Sand",
+        "back": "Sand",
+        "left": "Sand",
+        "right": "Sand"
+      }
     }
   ]
 }

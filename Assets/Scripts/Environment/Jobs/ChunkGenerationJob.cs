@@ -141,6 +141,30 @@ namespace Blox.Environment.Jobs
                 }
             }
 
+            for (var z = 0; z < m_ChunkSize.width; z++)
+            {
+                for (var x = 0; x < m_ChunkSize.width; x++)
+                {
+                    var index = m_ChunkSize.ToIndex(x, waterLevel, z);
+                    if (m_BlockTypeIds[index] == (int)BlockTypes.Water)
+                    {
+                        SetSandBlock(x > 0 ? index - 1 : -1); // left
+                        SetSandBlock(x > 0 && z > 0 ? m_ChunkSize.ToIndex(x - 1, waterLevel, z - 1) : -1); // left front
+                        SetSandBlock(x > 0 && z < m_ChunkSize.width - 1
+                            ? m_ChunkSize.ToIndex(x - 1, waterLevel, z + 1)
+                            : -1); // left back
+                        SetSandBlock(x < m_ChunkSize.width - 1 ? index + 1 : -1); // right
+                        SetSandBlock(z > 0 ? m_ChunkSize.ToIndex(x, waterLevel, z - 1) : -1); // front
+                        SetSandBlock(x < m_ChunkSize.width - 1 && z > 0
+                            ? m_ChunkSize.ToIndex(x + 1, waterLevel, z - 1)
+                            : -1); // right front
+                        SetSandBlock(x < m_ChunkSize.width - 1 && z < m_ChunkSize.width - 1
+                            ? m_ChunkSize.ToIndex(x + 1, waterLevel, z + 1)
+                            : -1); // right back
+                    }
+                }
+            }
+
             for (var i = 0; i < m_MaxTreeCount; i++)
             {
                 var x = random.Next(4, m_ChunkSize.width - 4);
@@ -233,6 +257,12 @@ namespace Blox.Environment.Jobs
             }
 
             return Mathf.Pow(value / normal, redistribution) * amplitude * (1 + (redistribution - 1) * scale);
+        }
+
+        private void SetSandBlock(int index)
+        {
+            if (index != -1 && m_BlockTypeIds[index] != (int)BlockTypes.Water)
+                m_BlockTypeIds[index] = (int)BlockTypes.Sand;
         }
     }
 }

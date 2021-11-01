@@ -15,7 +15,8 @@ namespace Blox.Environment.Config
         Wood,
         Leaves,
         Leaves2,
-        Coal
+        Coal,
+        Sand
     }
     
     public class BlockType
