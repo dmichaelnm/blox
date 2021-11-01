@@ -1,6 +1,7 @@
 ﻿using Blox.Environment;
 using Blox.Environment.Config;
 using Common;
+using UnityEngine;
 
 namespace Blox.Actions
 {
@@ -18,7 +19,14 @@ namespace Blox.Actions
             var blockTypeId = chunkData[position.local].id;
             var blockType = config.GetBlockType(blockTypeId);
 
-            chunkData.SetBlockType(position.local, (int)BlockTypes.Air);
+            var idTop = GetBlockTypeId(chunkData, position, BlockFace.Top);
+            var idLeft = GetBlockTypeId(chunkData, position, BlockFace.Left);
+            var idRight = GetBlockTypeId(chunkData, position, BlockFace.Right);
+            var idFront = GetBlockTypeId(chunkData, position, BlockFace.Front);
+            var idBack = GetBlockTypeId(chunkData, position, BlockFace.Back);
+            var newBlockTypeId = Mathf.Max(idTop, idLeft, idRight, idFront, idBack);
+            
+            chunkData.SetBlockType(position.local, newBlockTypeId);
             chunkManager.RefreshChunkMesh(chunkData, false);
 
             var cx = position.chunk.x;
@@ -38,6 +46,14 @@ namespace Blox.Actions
             chunkManager.RefreshChunkMesh(neighbour, false);
             
             return blockType.baseId;
+        }
+
+        private int GetBlockTypeId(ChunkData chunkData, Position position, BlockFace face)
+        {
+            var blockType = chunkData[position.local, face];
+            if (blockType.isFluid)
+                return blockType.id;
+            return (int)BlockTypes.Air;
         }
     }
 }

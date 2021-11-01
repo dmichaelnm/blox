@@ -1,4 +1,5 @@
 ﻿using Blox.Environment;
+using Blox.Environment.PostProcessing;
 using Blox.Utility;
 using Common;
 using UnityEngine;
@@ -36,6 +37,9 @@ namespace Blox.Player
         public delegate void ChunkChanged(ChunkData chunkData);
         public event ChunkChanged onChunkChanged;
 
+        [SerializeField] private AudioSource m_FootSteps;
+        [SerializeField] private AudioSource m_WaterSplash;
+        
         private Position m_Position;
         private bool m_IsGrounded;
         private Vector3 m_Velocity;
@@ -63,6 +67,15 @@ namespace Blox.Player
         private void Awake()
         {
             chunkManager.onInitialized += OnChunkManagerInitialized;
+
+            var underwater = Underwater.GetInstance();
+            underwater.onIsPlayerHitsWater += OnPlayerHitsWater;
+        }
+
+        private void OnPlayerHitsWater(bool hitted)
+        {
+            if (hitted)
+                m_WaterSplash.Play();
         }
 
         private void Update()
@@ -85,13 +98,10 @@ namespace Blox.Player
                 m_Velocity.y = -2f;
 
             // Rotation
-            if (Input.GetMouseButton(1))
-            {
                 m_Rotation.x += Input.GetAxis("Mouse X") * rotationSpeed;
                 m_Rotation.y -= Input.GetAxis("Mouse Y") * rotationSpeed;
                 m_Rotation.x = Mathf.Repeat(m_Rotation.x, 360f);
                 m_Rotation.y = Mathf.Clamp(m_Rotation.y, minLookDownAngle, maxLookUpAngle);
-            }
 
             transform.rotation = Quaternion.Euler(0f, m_Rotation.x, 0f);
             cameraTransform.localRotation = Quaternion.Euler(m_Rotation.y, 0f, 0f);
@@ -105,6 +115,11 @@ namespace Blox.Player
                 var mx = Input.GetAxis("Horizontal");
                 var my = Input.GetAxis("Vertical");
 
+                if ((mx != 0 || my != 0) && m_IsGrounded && !m_FootSteps.isPlaying)
+                    m_FootSteps.Play();
+                if ((mx == 0 && my == 0 || !m_IsGrounded) && m_FootSteps.isPlaying)
+                    m_FootSteps.Stop();
+                
                 var t = transform;
                 var movement = t.forward * my + t.right * mx;
                 movement = new Vector3(movement.x, 0f, movement.z);

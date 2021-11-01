@@ -1,4 +1,5 @@
 ﻿using Blox.Environment;
+using Blox.Environment.Config;
 using Blox.Utility;
 using UnityEngine;
 
@@ -6,8 +7,9 @@ namespace Common
 {
     public class Position
     {
-        public static Vector3Int ToLocal(ChunkSize size, ChunkPosition chunkPos, Vector3Int globalPos)
+        public static Vector3Int ToLocal(ChunkSize size, Vector3Int globalPos)
         {
+            var chunkPos = ToChunk(size, globalPos);
             var lx = globalPos.x - chunkPos.x * size.width;
             var ly = globalPos.y;
             var lz = globalPos.z - chunkPos.z * size.width;
@@ -37,9 +39,25 @@ namespace Common
         public readonly Vector3Int global;
         public readonly Vector3Int local;
         public readonly ChunkPosition chunk;
+        public readonly ChunkSize chunkSize;
 
-        public Vector3 rawLocal => new Vector3(local.x, local.y, local.z);
-
+        public Position this[BlockFace face]
+        {
+            get
+            {
+                return face switch
+                {
+                    BlockFace.Top => new Position(chunkSize, global + Vector3Int.up),
+                    BlockFace.Bottom => new Position(chunkSize, global + Vector3Int.down),
+                    BlockFace.Front => new Position(chunkSize, global + Vector3Int.back),
+                    BlockFace.Back => new Position(chunkSize, global + Vector3Int.forward),
+                    BlockFace.Left => new Position(chunkSize, global + Vector3Int.left),
+                    BlockFace.Right => new Position(chunkSize, global + Vector3Int.right),
+                    _ => null
+                };
+            }
+        }
+        
         public Position(ChunkSize size, ChunkPosition chunkPos, int localX, int localY, int localZ) : this(size,
             chunkPos, new Vector3Int(localX, localY, localZ))
         {
@@ -47,19 +65,30 @@ namespace Common
 
         public Position(ChunkSize size, ChunkPosition chunkPos, Vector3Int localPos)
         {
+            chunkSize = size;
             chunk = chunkPos;
             local = localPos;
             global = ToGlobal(size, chunkPos, localPos);
             raw = new Vector3(global.x + 0.5f, global.y + 0.5f, global.z + 0.5f);
         }
 
+        public Position(ChunkSize size, Vector3Int globalPos)
+        {
+            chunkSize = size;
+            local = ToLocal(size, globalPos);
+            chunk = ToChunk(size, globalPos);
+            global = globalPos;
+            raw = new Vector3(global.x + 0.5f, global.y + 0.5f, global.z + 0.5f);
+        }
+        
         public Position(ChunkSize size, Vector3 rawPos)
         {
+            chunkSize = size;
             raw = rawPos;
             global = new Vector3Int(MathUtility.Floor(rawPos.x), MathUtility.Floor(rawPos.y),
                 MathUtility.Floor(rawPos.z));
             chunk = ToChunk(size, global);
-            local = ToLocal(size, chunk, global);
+            local = ToLocal(size, global);
         }
 
         public override bool Equals(object obj)

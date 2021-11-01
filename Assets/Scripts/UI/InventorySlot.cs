@@ -1,5 +1,4 @@
-﻿using System;
-using Blox.Environment.Config;
+﻿using Blox.Environment.Config;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,8 +16,14 @@ namespace Blox.UI
                 {
                     var config = Configuration.GetInstance();
                     var blockType = config.GetBlockType(m_BlockTypeId);
-                    m_BlockButton.image.sprite = blockType.iconNormal;
-                    m_BlockButton.image.color = Color.white;
+                    m_BlockImage.sprite = blockType.iconNormal;
+                    m_BlockImage.color = Color.white;
+                }
+                else
+                {
+                    m_BlockImage.sprite = null;
+                    m_BlockImage.color = new Color(0, 0, 0, 0);
+                    m_BlockText.text = "";
                 }
             }   
         }
@@ -33,7 +38,7 @@ namespace Blox.UI
             }
         }
 
-        [SerializeField] private Button m_BlockButton;
+        [SerializeField] private Image m_BlockImage;
         [SerializeField] private Text m_BlockText;
 
         private int m_Count;
@@ -44,7 +49,6 @@ namespace Blox.UI
         {
             m_Inventory = GetComponentInParent<Inventory>();
             m_Inventory.onInventorySlotSelected += OnInventorySlotSelected; 
-            m_BlockButton.onClick.AddListener(OnButtonClicked);
         }
 
         private void OnInventorySlotSelected(InventorySlot slot)
@@ -53,14 +57,9 @@ namespace Blox.UI
             var blockType = config.GetBlockType(m_BlockTypeId);
 
             if (m_BlockTypeId == slot.blockTypeId)
-                m_BlockButton.image.sprite = blockType.iconSelected;
+                m_BlockImage.sprite = blockType.iconSelected;
             else
-                m_BlockButton.image.sprite = blockType.iconNormal;
-        }
-
-        private void OnButtonClicked()
-        {
-            m_Inventory.UpdateSelectionStates(this);
+                m_BlockImage.sprite = blockType.iconNormal;
         }
     }
 }

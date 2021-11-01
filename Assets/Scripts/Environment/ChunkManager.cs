@@ -8,6 +8,7 @@ using Blox.Environment.Jobs;
 using Blox.Utility;
 using Game;
 using Unity.Jobs;
+using UnityEditor;
 using UnityEngine;
 using IJob = Blox.Environment.Jobs.IJob;
 
@@ -130,6 +131,7 @@ namespace Blox.Environment
 
         private void Awake()
         {
+            Cursor.lockState = CursorLockMode.Locked;
             RemoveTempCacheFiles();
             Configuration.GetInstance();
             m_ChunkDataCache = new Dictionary<string, ChunkData>();

@@ -10,11 +10,18 @@ namespace Blox.Environment.PostProcessing
 {
     public class Underwater : MonoBehaviour
     {
+        public static Underwater GetInstance()
+        {
+            return GameObject.Find("Underwater").GetComponent<Underwater>();
+        }
+        
         public float offset = 0.3f;
 
         public delegate void IsPlayerUnderwater(bool underwater);
-
+        public delegate void IsPlayerHitsWater(bool hitted);
         public event IsPlayerUnderwater onIsPlayerUnderwater;
+        public event IsPlayerHitsWater onIsPlayerHitsWater;
+        
         public Vector2 distortionSpeed;
         [Range(0f, 0.5f)] public float distortionStrength = 0.25f;
 
@@ -28,17 +35,31 @@ namespace Blox.Environment.PostProcessing
         private Vector2 m_DistortionFactor;
         private Vector2 m_DistortionBounds;
         private Random m_Random;
+        private bool m_WaterHitted;
 
         public void OnPlayerPositionChanged(Position position)
         {
             if (m_ChunkManager.initialized)
             {
                 var chunkData = m_ChunkManager[position.chunk];
+                var belowBlockType = chunkData[position[BlockFace.Bottom].local];
+                Debug.Log(belowBlockType);
+                if (belowBlockType.isFluid && !m_WaterHitted)
+                {
+                    m_WaterHitted = true;
+                    onIsPlayerHitsWater?.Invoke(m_WaterHitted);
+                } 
+                else if (belowBlockType.isEmpty && m_WaterHitted)
+                {
+                    m_WaterHitted = false;
+                    onIsPlayerHitsWater?.Invoke(m_WaterHitted);
+                }
+                
                 var blockType = chunkData[position.local];
                 if (blockType != null)
                 {
                     var delta = position.raw.y - position.local.y;
-                    if (blockType.id == 3 && delta < offset && !m_IsUnderwater)
+                    if (blockType.isFluid && delta < offset && !m_IsUnderwater)
                     {
                         m_IsUnderwater = true;
                         onIsPlayerUnderwater?.Invoke(m_IsUnderwater);
