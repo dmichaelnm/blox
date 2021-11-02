@@ -413,6 +413,7 @@ MonoBehaviour:
   purgeTimeout: 60
   purgeInterval: 10
   waterOffset: -0.1
+  lockMouse: 1
   baseLine: 32
   randomSeed: 0
   terrainNoiseParameter:

@@ -5,12 +5,15 @@ using System.IO;
 using System.Linq;
 using Blox.Environment.Config;
 using Blox.Environment.Jobs;
+using Blox.MainMenu;
 using Blox.Utility;
 using Game;
 using Unity.Jobs;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using IJob = Blox.Environment.Jobs.IJob;
+using Random = System.Random;
 
 namespace Blox.Environment
 {
@@ -50,6 +53,7 @@ namespace Blox.Environment
         [Header("Chunk Manager Properties")]
         // ----------------------------------
         public ChunkSize chunkSize;
+
         public int visibleChunks = 2;
         public float purgeTimeout = 60f;
         public float purgeInterval = 5f;
@@ -133,12 +137,46 @@ namespace Blox.Environment
         {
             if (lockMouse)
                 Cursor.lockState = CursorLockMode.Locked;
-            
+
             RemoveTempCacheFiles();
             Configuration.GetInstance();
             m_ChunkDataCache = new Dictionary<string, ChunkData>();
             m_ChunkGenerationJobs = new Queue<JobInfo<IChunkDataProvider>>();
             m_InstantiatingChunks = new Queue<ChunkData>();
+
+            var preset = PresetManager.GetInstance().selectedPreset;
+            if (preset != null)
+            {
+                randomSeed = preset.randomSeed;
+                var random = new System.Random(randomSeed);
+                
+                terrainNoiseParameter = preset.terrainNoiseParameter;
+                terrainAmplitude = preset.terrainAmplitude;
+                waterNoiseParameter = preset.waterNoiseParameter;
+                waterAmplitude = preset.waterAmplitude;
+                waterLineOffset = preset.waterLineOffset;
+                stoneNoiseParameter = preset.stoneNoiseParameter;
+                stoneLevelRelative = preset.stoneRelativeLevel;
+                stoneScattering = preset.stoneScattering;
+                snowLevelRelative = preset.snowRelativeLevel;
+                snowScattering = preset.snowScattering;
+                maxTreeCount = preset.maxTreeCount;
+                treeNoiseParameter = preset.treeNoiseParameter;
+                treeThreshold = preset.threshold;
+                minTreeHeight = preset.minTreeHeight;
+                maxTreeHeight = preset.maxTreeHeight;
+                coalProbability = preset.coalProbability;
+
+                terrainNoiseParameter.seed = RandomSeedVector();
+                waterNoiseParameter.seed = RandomSeedVector();
+                stoneNoiseParameter.seed = RandomSeedVector();
+                treeNoiseParameter.seed = RandomSeedVector();
+
+                Vector2 RandomSeedVector()
+                {
+                    return new Vector2(random.Next(-65535, 65535), random.Next(-65535, 65535));
+                }
+            }
         }
 
         private void Update()
@@ -170,6 +208,11 @@ namespace Blox.Environment
                 {
                     PurgeChunkData();
                     m_PurgeTimer = 0f;
+                }
+
+                if (Input.GetKeyUp(KeyCode.Escape))
+                {
+                    SceneManager.LoadScene("MainMenuScene");
                 }
             }
 

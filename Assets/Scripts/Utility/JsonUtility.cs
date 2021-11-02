@@ -95,16 +95,36 @@ namespace Blox.Utility
             {
                 if (typeof(T) == typeof(object) ||
                     reader.CurrentTokenIs(JsonToken.Boolean, false) && typeof(T) == typeof(bool) ||
-                    reader.CurrentTokenIs(JsonToken.String, false) && typeof(T) == typeof(string) ||
-                    reader.CurrentTokenIs(JsonToken.Float, false) && typeof(T) == typeof(float))
+                    reader.CurrentTokenIs(JsonToken.String, false) && typeof(T) == typeof(string))
                 {
                     result = (T)value;
                     return true;
                 }
 
-                if (reader.CurrentTokenIs(JsonToken.Integer, false) && typeof(T) == typeof(int))
+                if (reader.CurrentTokenIs(JsonToken.Float, false) && typeof(T) == typeof(float))
                 {
-                    result = (T)(object)Convert.ToInt32((long)value);
+                    var lv = (double)value;
+                    var cv = (float)lv;
+                    var ov = (object)cv;
+                    var tv = (T)ov;
+                    result = tv;
+                    return true;
+                }
+                
+                if (reader.CurrentTokenIs(JsonToken.Integer, false) &&
+                    (typeof(T) == typeof(int) || typeof(T) == typeof(float)))
+                {
+                    if (typeof(T) == typeof(float))
+                    {
+                        var lv = (long)value;
+                        var cv = (float)lv;
+                        var ov = (object)cv;
+                        var tv = (T)ov;
+                        result = tv;
+                    }
+                    else
+                        result = (T)(object)Convert.ToInt32((long)value);
+
                     return true;
                 }
 
@@ -191,6 +211,13 @@ namespace Blox.Utility
         public static string GetContext(this IJsonLineInfo reader)
         {
             return "Line " + reader.LineNumber + ", Column " + reader.LinePosition;
+        }
+
+        public static T GetNextPropertyValue<T>(this JsonTextReader reader, string expectedPropertyName,
+            T defaultResult = default)
+        {
+            reader.NextPropertyValue(expectedPropertyName, out var value, defaultResult);
+            return value;
         }
     }
 }
