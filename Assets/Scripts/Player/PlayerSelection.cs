@@ -1,56 +1,180 @@
 ﻿using System;
-using Blox.Environment;
-using Blox.Environment.Config;
-using Blox.Utility;
-using Common;
+using System.Diagnostics.CodeAnalysis;
+using Blox.ConfigurationNS;
+using Blox.EnvironmentNS;
+using Blox.GameNS;
+using Blox.UtilitiesNS;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Blox.Player
+namespace Blox.PlayerNS
 {
+    /// <summary>
+    /// This component controls the selection of blocks by the player.
+    /// </summary>
     public class PlayerSelection : MonoBehaviour
     {
+        /// <summary>
+        /// This enumeration contains all supported mouse button states.
+        /// </summary>
         [Flags]
         public enum MouseButtonState
         {
+            /// <summary>
+            /// No mouse button event.
+            /// </summary>
             None = 0,
+
+            /// <summary>
+            /// The left mouse button is pressed down.
+            /// </summary>
             LeftButtonDown = 1,
+
+            /// <summary>
+            /// The right mouse button is pressed down.
+            /// </summary>
             RightButtonDown = 2,
+
+            /// <summary>
+            /// The middle mouse button is pressed down.
+            /// </summary>
             MiddleButtonDown = 4,
+
+            /// <summary>
+            /// The left mouse button is released.
+            /// </summary>
             LeftButtonUp = 8,
+
+            /// <summary>
+            /// The right mouse button is released.
+            /// </summary>
             RightButtonUp = 16,
+
+            /// <summary>
+            /// The midlle mouse button is released.
+            /// </summary>
             MiddleButtonUp = 32
         }
 
-        private const float epsilon = 0.001f;
-
-        public Camera cam;
-        public float maxDistance = 5;
-        public bool mouseSelection;
-
-        public delegate void BlockSelectionEvent(Position position, BlockFace face,
-            MouseButtonState mouseButtonState);
-        public event BlockSelectionEvent onBlockSelection;
-
-        private ChunkManager m_ChunkManager;
-        private MeshRenderer m_MeshRenderer;
-        private MouseButtonState m_MouseButtonState;
-        private MouseButtonState m_LastMouseButtonState;
-        private bool m_MouseButtonStateChanged;
-        private BlockFace m_LastFace;
-        private Vector3 m_LastPosition;
-        private Transform m_CameraTransform;
-
-        private void Awake()
+        /// <summary>
+        /// The state of this component.
+        /// </summary>
+        internal struct State
         {
-            m_ChunkManager = GameObject.Find("Chunk Manager").GetComponent<ChunkManager>();
-            m_MeshRenderer = GetComponent<MeshRenderer>();
-            m_CameraTransform = cam.transform;
+            /// <summary>
+            /// The current mouse button state.
+            /// </summary>
+            public MouseButtonState MouseButtonState;
+
+            /// <summary>
+            /// The selected block face.
+            /// </summary>
+            public BlockFace Face;
+
+            /// <summary>
+            /// The position of the selection block
+            /// </summary>
+            public Vector3 Position;
+
+            /// <summary>
+            /// Compares this state to an other object. If the other object is also a state then all three properties
+            /// must be the same to be considered as equal.
+            /// </summary>
+            /// <param name="obj"></param>
+            /// <returns></returns>
+            public override bool Equals(object obj)
+            {
+                if (obj is State state)
+                    return MouseButtonState == state.MouseButtonState && Face == state.Face &&
+                           Position == state.Position;
+
+                return false;
+            }
+
+            /// <summary>
+            /// Returns a hash code for this struct.
+            /// </summary>
+            /// <returns>Hash code</returns>
+            [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
+            public override int GetHashCode()
+            {
+                return (int)MouseButtonState * (int)Face * Position.GetHashCode();
+            }
         }
 
+        /// <summary>
+        /// A constant for an error margin value used when detecting the selected block face.
+        /// </summary>
+        private const float Epsilon = 0.001f;
+
+        /// <summary>
+        /// The maximum distance the player can select blocks from his position.
+        /// </summary>
+        public float MaxSelectionDistance = 5;
+
+        /// <summary>
+        /// This event is triggered when a block is selected.
+        /// </summary>
+        public event Events.PlayerSelectionEvent OnBlockSelected;
+
+        /// <summary>
+        /// This event is triggered when nothing is selected.
+        /// </summary>
+        public event Events.EmptyEvent OnNothingSelected;
+        
+        /// <summary>
+        /// This event is triggered when the player selection is about to be destroyed.
+        /// </summary>
+        public event Events.ComponentEvent<PlayerSelection> OnPlayerSelectionDestroyed;
+
+        /// <summary>
+        /// The camera object.
+        /// </summary>
+        [SerializeField] private Transform m_CameraTransform;
+
+        /// <summary>
+        /// The chunk manager component.
+        /// </summary>
+        [SerializeField] private ChunkManager m_ChunkManager;
+
+        /// <summary>
+        /// The mesh renderer of the selection block.
+        /// </summary>
+        private MeshRenderer m_MeshRenderer;
+
+        /// <summary>
+        /// The current state.
+        /// </summary>
+        private State m_CurrentState;
+
+        /// <summary>
+        /// The last state.
+        /// </summary>
+        private State m_LastState;
+
+        /// <summary>
+        /// This method is called when this component is created.
+        /// </summary>
+        private void Awake()
+        {
+            m_MeshRenderer = GetComponent<MeshRenderer>();
+        }
+
+        /// <summary>
+        /// This method is called before the player selection is destroyed.
+        /// </summary>
+        private void OnDestroy()
+        {
+            OnPlayerSelectionDestroyed?.Invoke(this);
+        }
+
+        /// <summary>
+        /// This method is called every frame
+        /// </summary>
         private void Update()
         {
-            m_MouseButtonState =
+            // Get the current state of the mouse buttons
+            m_CurrentState.MouseButtonState =
                 (Input.GetMouseButtonDown(0) ? MouseButtonState.LeftButtonDown : MouseButtonState.None) |
                 (Input.GetMouseButtonDown(1) ? MouseButtonState.RightButtonDown : MouseButtonState.None) |
                 (Input.GetMouseButtonDown(2) ? MouseButtonState.MiddleButtonDown : MouseButtonState.None) |
@@ -58,87 +182,84 @@ namespace Blox.Player
                 (Input.GetMouseButtonUp(1) ? MouseButtonState.RightButtonUp : MouseButtonState.None) |
                 (Input.GetMouseButtonUp(2) ? MouseButtonState.MiddleButtonUp : MouseButtonState.None);
 
+            // If the mouse hits a component in UI canvas then ignore it here
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-                m_MouseButtonState = MouseButtonState.None;
-
-            if (m_MouseButtonState != m_LastMouseButtonState)
-            {
-                m_MouseButtonStateChanged = true;
-                m_LastMouseButtonState = m_MouseButtonState;
-            }
+                m_CurrentState.MouseButtonState = MouseButtonState.None;
 
             var show = false;
-            var face = BlockFace.Top;
-            var position = Vector3.zero;
 
-            var ray = mouseSelection
-                ? cam.ScreenPointToRay(Input.mousePosition)
-                : new Ray(m_CameraTransform.position, m_CameraTransform.forward);
-
-            if (Physics.Raycast(ray, out var hit, maxDistance))
+            // Calculates which block face is selected
+            var ray = new Ray(m_CameraTransform.position, m_CameraTransform.forward);
+            if (Physics.Raycast(ray, out var hit, MaxSelectionDistance))
             {
                 show = true;
 
-                var x = hit.point.x + epsilon;
-                var y = hit.point.y + epsilon;
-                var z = hit.point.z + epsilon;
+                var x = hit.point.x + Epsilon;
+                var y = hit.point.y + Epsilon;
+                var z = hit.point.z + Epsilon;
 
-                var bx = MathUtility.Floor(x) + epsilon;
-                var by = MathUtility.Floor(y) + epsilon;
-                var bz = MathUtility.Floor(z) + epsilon;
+                var bx = MathUtilities.Floor(x) + Epsilon;
+                var by = MathUtilities.Floor(y) + Epsilon;
+                var bz = MathUtilities.Floor(z) + Epsilon;
 
                 var dx = Mathf.Abs(x - bx);
                 var dy = Mathf.Abs(y - by);
                 var dz = Mathf.Abs(z - bz);
 
                 var cnt = 0;
-                if (dx < epsilon) cnt++;
-                if (dy < epsilon) cnt++;
-                if (dz < epsilon) cnt++;
+                if (dx < Epsilon) cnt++;
+                if (dy < Epsilon) cnt++;
+                if (dz < Epsilon) cnt++;
 
                 if (cnt <= 1)
                 {
-                    if (ray.direction.y < 0f && dy < epsilon)
+                    if (ray.direction.y < 0f && dy < Epsilon)
                     {
                         // Top
-                        position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) - 0.5f,
-                            MathUtility.Floor(z) + 0.5f);
-                        face = BlockFace.Top;
+                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
+                            MathUtilities.Floor(y) - 0.5f,
+                            MathUtilities.Floor(z) + 0.5f);
+                        m_CurrentState.Face = BlockFace.Top;
                     }
-                    else if (ray.direction.y > 0f && dy < epsilon)
+                    else if (ray.direction.y > 0f && dy < Epsilon)
                     {
                         // Bottom
-                        position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
-                            MathUtility.Floor(z) + 0.5f);
-                        face = BlockFace.Bottom;
+                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
+                            MathUtilities.Floor(y) + 0.5f,
+                            MathUtilities.Floor(z) + 0.5f);
+                        m_CurrentState.Face = BlockFace.Bottom;
                     }
-                    else if (ray.direction.z > 0f && dz < epsilon)
+                    else if (ray.direction.z > 0f && dz < Epsilon)
                     {
                         // Front
-                        position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
-                            MathUtility.Floor(z) + 0.5f);
-                        face = BlockFace.Front;
+                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
+                            MathUtilities.Floor(y) + 0.5f,
+                            MathUtilities.Floor(z) + 0.5f);
+                        m_CurrentState.Face = BlockFace.Front;
                     }
-                    else if (ray.direction.z < 0f && dz < epsilon)
+                    else if (ray.direction.z < 0f && dz < Epsilon)
                     {
                         // Back
-                        position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
-                            MathUtility.Floor(z) - 0.5f);
-                        face = BlockFace.Back;
+                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
+                            MathUtilities.Floor(y) + 0.5f,
+                            MathUtilities.Floor(z) - 0.5f);
+                        m_CurrentState.Face = BlockFace.Back;
                     }
-                    else if (ray.direction.x > 0f && dx < epsilon)
+                    else if (ray.direction.x > 0f && dx < Epsilon)
                     {
                         // Left
-                        position = new Vector3(MathUtility.Floor(x) + 0.5f, MathUtility.Floor(y) + 0.5f,
-                            MathUtility.Floor(z) + 0.5f);
-                        face = BlockFace.Left;
+                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
+                            MathUtilities.Floor(y) + 0.5f,
+                            MathUtilities.Floor(z) + 0.5f);
+                        m_CurrentState.Face = BlockFace.Left;
                     }
-                    else if (ray.direction.x < 0f && dx < epsilon)
+                    else if (ray.direction.x < 0f && dx < Epsilon)
                     {
                         // Right
-                        position = new Vector3(MathUtility.Floor(x) - 0.5f, MathUtility.Floor(y) + 0.5f,
-                            MathUtility.Floor(z) + 0.5f);
-                        face = BlockFace.Right;
+                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) - 0.5f,
+                            MathUtilities.Floor(y) + 0.5f,
+                            MathUtilities.Floor(z) + 0.5f);
+                        m_CurrentState.Face = BlockFace.Right;
                     }
                 }
                 else
@@ -148,25 +269,31 @@ namespace Blox.Player
             if (show)
             {
                 // show the selection block
-                transform.position = position;
-                m_MeshRenderer.sharedMaterial.SetFloat("_Face", (int)face);
+                transform.position = m_CurrentState.Position;
+                m_MeshRenderer.sharedMaterial.SetFloat("_Face", (int)m_CurrentState.Face);
                 m_MeshRenderer.enabled = true;
 
                 // check, if new event must be send
-                if (position != m_LastPosition || face != m_LastFace || m_MouseButtonStateChanged)
+                if (!m_CurrentState.Equals(m_LastState))
                 {
-                    var blockPosition = new Position(m_ChunkManager.chunkSize, position);
-                    onBlockSelection?.Invoke(blockPosition, face, m_MouseButtonState);
+                    var position = new Vector3Int(
+                        (int)m_CurrentState.Position.x,
+                        (int)m_CurrentState.Position.y,
+                        (int)m_CurrentState.Position.z);
+                    var chunkPosition = ChunkPosition.FromGlobalPosition(m_ChunkManager.ChunkSize, position);
+                    var chunkData = m_ChunkManager[chunkPosition];
+                    var localPosition = chunkPosition.ToLocalPosition(m_ChunkManager.ChunkSize, position);
+                    var blockType = chunkData[localPosition];
 
-                    m_LastPosition = position;
-                    m_LastFace = face;
-                    m_MouseButtonStateChanged = false;
+                    OnBlockSelected?.Invoke(position, blockType, m_CurrentState.Face, m_CurrentState.MouseButtonState);
+                    m_LastState = m_CurrentState;
                 }
             }
             else
             {
                 // hide the selection block
                 m_MeshRenderer.enabled = false;
+                OnNothingSelected?.Invoke();
             }
         }
     }

@@ -1,77 +1,59 @@
-﻿using System.IO;
-using Blox.Environment.Config;
-using Game;
+﻿using System;
+using Blox.ConfigurationNS;
+using Blox.UtilitiesNS;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-namespace Blox.Environment
+namespace Blox.EnvironmentNS
 {
+    /// <summary>
+    /// A container for storing the data of a chunk.
+    /// </summary>
     public class ChunkData
     {
-        // ----------------------------------
-        public readonly ChunkManager chunkManager;
-        public readonly ChunkPosition chunkPosition;
+        /// <summary>
+        /// Returns the size of the chunk as defined in the chunk manager.
+        /// </summary>
+        public ChunkSize ChunkSize => m_ChunkManager.ChunkSize;
 
-        // ----------------------------------
-        public ChunkSize chunkSize => chunkManager.chunkSize;
-        public ChunkData Left => chunkManager[chunkPosition.x - 1, chunkPosition.z];
-        public ChunkData Right => chunkManager[chunkPosition.x + 1, chunkPosition.z];
-        public ChunkData Front => chunkManager[chunkPosition.x, chunkPosition.z - 1];
-        public ChunkData Back => chunkManager[chunkPosition.x, chunkPosition.z + 1];
-        public string cacheKey => chunkPosition.cacheKey;
-        public float purgeTimer => Time.realtimeSinceStartup - m_PurgeTimer;
+        /// <summary>
+        /// The position of the chunk that uses this data.
+        /// </summary>
+        public readonly ChunkPosition ChunkPosition;
 
-        // ----------------------------------
-        private Configuration m_Configuration => Configuration.GetInstance();
+        /// <summary>
+        /// The chunk data container left to this one.
+        /// </summary>
+        public ChunkData Left => m_ChunkManager[ChunkPosition.Left];
 
-        private float m_PurgeTimer;
+        /// <summary>
+        /// The chunk data container right to this one.
+        /// </summary>
+        public ChunkData Right => m_ChunkManager[ChunkPosition.Right];
 
-        public BlockType this[int x, int y, int z]
-        {
-            get
-            {
-                if (chunkSize.IsValid(x, y, z))
-                {
-                    var index = chunkSize.ToIndex(x, y, z);
-                    return m_Configuration.GetBlockType(m_BlockDataItems[index]);
-                }
+        /// <summary>
+        /// The chunk data container in front to this one.
+        /// </summary>
+        public ChunkData Front => m_ChunkManager[ChunkPosition.Front];
 
-                if (y < 0 || y >= chunkSize.height)
-                    return null;
+        /// <summary>
+        /// The chunk data container back to this one.
+        /// </summary>
+        public ChunkData Back => m_ChunkManager[ChunkPosition.Back];
 
-                var cx = chunkPosition.x;
-                var cz = chunkPosition.z;
-
-                if (x < 0)
-                {
-                    cx--;
-                    x += chunkSize.width;
-                }
-                else if (x >= chunkSize.width)
-                {
-                    cx++;
-                    x -= chunkSize.width;
-                }
-
-                if (z < 0)
-                {
-                    cz--;
-                    z += chunkSize.width;
-                }
-                else if (z >= chunkSize.width)
-                {
-                    cz++;
-                    z -= chunkSize.width;
-                }
-
-                var chunkData = chunkManager[cx, cz];
-                Assert.IsNotNull(chunkData, "Chunk Data " + chunkPosition + " not found");
-                return chunkData[x, y, z];
-            }
-        }
-
-        public BlockType this[Vector3Int local] => this[local.x, local.y, local.z];
-
+        /// <summary>
+        /// The timestamp when the chunk data was last active. 
+        /// </summary>
+        public float LastActive { get; private set; }
+        
+        /// <summary>
+        /// Returns the block type of a neighbour to the given local coordinates.
+        /// </summary>
+        /// <param name="x">The local X coordinate of the block</param>
+        /// <param name="y">The local Y coordinate of the block</param>
+        /// <param name="z">The local Z coordinate of the block</param>
+        /// <param name="face">The face defined which neighbour block type is returned</param>
         public BlockType this[int x, int y, int z, BlockFace face]
         {
             get
@@ -89,55 +71,162 @@ namespace Blox.Environment
             }
         }
 
-        public BlockType this[Vector3Int local, BlockFace face] => this[local.x, local.y, local.z, face];
-        
-        // internal properties
-        private readonly int[] m_BlockDataItems;
-
-        public ChunkData(ChunkManager chunkManager, ChunkPosition chunkPosition, int[] blockTypeIds)
+        /// <summary>
+        /// Returns the block type for the given local raw position.
+        /// </summary>
+        /// <param name="position">A local raw position</param>
+        public BlockType this[Vector3 position]
         {
-            this.chunkManager = chunkManager;
-            this.chunkPosition = chunkPosition;
-            m_BlockDataItems = blockTypeIds;
-            m_PurgeTimer = Time.realtimeSinceStartup;
-        }
-
-        public int GetFirstSolidBlockPosition(int x, int z)
-        {
-            var y = chunkSize.height - 1;
-            while (y >= 0 && !this[x, y, z].isSolid)
-                y--;
-            return y >= 0 ? y : -1;
-        }
-
-        public void StayAlive()
-        {
-            m_PurgeTimer = Time.realtimeSinceStartup;
-        }
-
-        public void Save()
-        {
-            var path = GameConstants.TemporaryPath + "/" + chunkPosition.cacheFilename;
-            var bytes = new byte[chunkSize.size * 4];
-            var index = 0;
-            foreach (var item in m_BlockDataItems)
+            get
             {
-                bytes[index++] = (byte)((item & 0xFF000000) >> 3);
-                bytes[index++] = (byte)((item & 0xFF0000) >> 2);
-                bytes[index++] = (byte)((item & 0xFF00) >> 1);
-                bytes[index++] = (byte)((item & 0xFF) >> 0);
+                var x = MathUtilities.Floor(position.x);
+                var y = MathUtilities.Floor(position.y);
+                var z = MathUtilities.Floor(position.z);
+                return this[x, y, z];
             }
-            File.WriteAllBytes(path, bytes);
         }
 
-        public void SetBlockType(Vector3Int local, int blockTypeId)
+        /// <summary>
+        /// Returns the block type for the given local position vector.
+        /// </summary>
+        /// <param name="localPosition">A local position vector</param>
+        public BlockType this[Vector3Int localPosition] => this[localPosition.x, localPosition.y, localPosition.z];
+        
+        /// <summary>
+        /// Returns the block type for the given local coordinates.
+        /// </summary>
+        /// <param name="x">The local X coordinate of the block</param>
+        /// <param name="y">The local Y coordinate of the block</param>
+        /// <param name="z">The local Z coordinate of the block</param>
+        public BlockType this[int x, int y, int z]
         {
-            SetBlockType(local.x, local.y, local.z, blockTypeId);    
+            get
+            {
+                if (ChunkSize.IsValid(x, y, z))
+                {
+                    var config = Configuration.GetInstance();
+                    return config.GetBlockType(m_Blocks[ChunkSize.ToIndex(x, y, z)]);
+                }
+
+                if (y < 0 || y >= ChunkSize.Height)
+                    return null;
+
+                if (x == -1)
+                    return Left[ChunkSize.Width - 1, y, z];
+                if (x == ChunkSize.Width)
+                    return Right[0, y, z];
+                if (z == -1)
+                    return Front[x, y, ChunkSize.Width - 1];
+                if (z == ChunkSize.Width)
+                    return Back[x, y, 0];
+
+                throw new Exception("Invalid application state.");
+            }
+        }
+
+        /// <summary>
+        /// Internal reference to the chunk manager
+        /// </summary>
+        private readonly ChunkManager m_ChunkManager;
+
+        /// <summary>
+        /// Internal array containg the block informations of this chunks data container.
+        /// </summary>
+        private readonly int[] m_Blocks;
+
+        /// <summary>
+        /// Creates a new chunk data instance for the given position and initializes it with the given block array.
+        /// </summary>
+        /// <param name="chunkPosition">The position of the chunk that uses this data</param>
+        /// <param name="blocks">An array containing the block information for this new chunk data container</param>
+        public ChunkData(ChunkPosition chunkPosition, [NotNull] int[] blocks)
+        {
+            m_ChunkManager = ChunkManager.GetInstance();
+
+            // Check, if the block array has the proper size
+            Assert.IsTrue(blocks.Length == ChunkSize.Size);
+
+            ChunkPosition = chunkPosition;
+            m_Blocks = blocks;
+            LastActive = Time.realtimeSinceStartup;
+        }
+
+        /// <summary>
+        /// Returns the height of the surface. The surface is the first solid block counted from the top of the chunk.
+        /// </summary>
+        /// <param name="x">Local X coordinate</param>
+        /// <param name="z">Local Z coordinate</param>
+        /// <param name="y">The resulting Y coordinate</param>
+        /// <returns>True, if a solid block was found, otherwise false</returns>
+        public bool GetSurfaceHeight(int x, int z, out int y)
+        {
+            var _y = ChunkSize.Height - 1;
+            while (_y >= 0)
+            {
+                var blockType = this[x, _y, z];
+                if (blockType.IsSolid)
+                {
+                    y = _y;
+                    return true;
+                }
+                _y--;
+            }
+
+            y = default;
+            return false;
         }
         
-        public void SetBlockType(int x, int y, int z, int blockTypeId)
+        /// <summary>
+        /// Sets the block type of the block located at the given local coordinates.
+        /// </summary>
+        /// <param name="x">The local X coordinate</param>
+        /// <param name="y">The local Y coordinate</param>
+        /// <param name="z">The local Z coordinate</param>
+        /// <param name="blockTypeId">The ID of the block type</param>
+        public void SetBlock(int x, int y, int z, int blockTypeId)
         {
-            m_BlockDataItems[chunkSize.ToIndex(x, y, z)] = blockTypeId;
+            Assert.IsTrue(ChunkSize.IsValid(x, y, z));
+            m_Blocks[ChunkSize.ToIndex(x, y, z)] = blockTypeId;
+        }
+
+        /// <summary>
+        /// Sets the block type of the block located at the given local position vector.
+        /// </summary>
+        /// <param name="localPosition">The local position vector</param>
+        /// <param name="blockTypeId">The ID of the block type</param>
+        public void SetBlock(Vector3Int localPosition, int blockTypeId)
+        {
+            SetBlock(localPosition.x, localPosition.y, localPosition.z, blockTypeId);    
+        }
+        
+        /// <summary>
+        /// Marks this chunk data container as active.
+        /// </summary>
+        public void MarkAsActive()
+        {
+            LastActive = Time.realtimeSinceStartup;
+        }
+
+        /// <summary>
+        /// Returns the array with the block types.
+        /// </summary>
+        /// <returns>block type array</returns>
+        public int[] ToArray()
+        {
+            return m_Blocks;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ChunkData cd)
+                return cd.ChunkPosition.Equals(ChunkPosition);
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return ChunkPosition.GetHashCode();
         }
     }
 }

@@ -1,65 +1,116 @@
-﻿using Blox.Environment.Config;
+﻿using Blox.ConfigurationNS;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Blox.UI
+namespace Blox.UINS
 {
+    /// <summary>
+    /// This component represents a single slot in the inventory.
+    /// </summary>
     public class InventorySlot : MonoBehaviour
     {
-        public int blockTypeId
+        /// <summary>
+        /// The ID of the block type stored by this slot.
+        /// </summary>
+        public int BlockTypeId
         {
             get => m_BlockTypeId;
             set
             {
                 m_BlockTypeId = value;
-                if (m_BlockTypeId > 0)
+                if (m_BlockTypeId == 0)
                 {
-                    var config = Configuration.GetInstance();
-                    var blockType = config.GetBlockType(m_BlockTypeId);
-                    m_BlockImage.sprite = blockType.iconNormal;
-                    m_BlockImage.color = Color.white;
+                    SetEnabled(false);
                 }
                 else
                 {
-                    m_BlockImage.sprite = null;
-                    m_BlockImage.color = new Color(0, 0, 0, 0);
-                    m_BlockText.text = "";
+                    SetEnabled(true);
+                    var config = Configuration.GetInstance();
+                    var blockType = config.GetBlockType(m_BlockTypeId);
+                    m_BlockIcon.sprite = m_Selected ? blockType.IconSelected : blockType.Icon;
+                    m_Counter.text = $"{m_Count}";
                 }
-            }   
+            }
         }
 
-        public int count
+        /// <summary>
+        /// Returns the count of blocks in this slot.
+        /// </summary>
+        public int Count
         {
             get => m_Count;
             set
             {
                 m_Count = value;
-                m_BlockText.text = m_Count.ToString();
+                m_Counter.text = $"{m_Count}";
+                if (m_Count == 0)
+                {
+                    BlockTypeId = 0;
+                }
             }
         }
 
-        [SerializeField] private Image m_BlockImage;
-        [SerializeField] private Text m_BlockText;
-
-        private int m_Count;
-        private int m_BlockTypeId;
-        private Inventory m_Inventory;
-
-        private void Awake()
+        /// <summary>
+        /// Set the selected state of this slot. This property should not be set directly.
+        /// </summary>
+        public  bool Selected
         {
-            m_Inventory = GetComponentInParent<Inventory>();
-            m_Inventory.onInventorySlotSelected += OnInventorySlotSelected; 
+            get => m_Selected;
+            set
+            {
+                var config = Configuration.GetInstance();
+                var blockType = config.GetBlockType(m_BlockTypeId);
+                m_Selected = value;
+                m_BlockIcon.sprite = m_Selected ? blockType.IconSelected : blockType.Icon;
+            }
         }
 
-        private void OnInventorySlotSelected(InventorySlot slot)
-        {
-            var config = Configuration.GetInstance();
-            var blockType = config.GetBlockType(m_BlockTypeId);
+        /// <summary>
+        /// Returns true when from this slot a block can be removed.
+        /// </summary>
+        public bool IsBlockRemovable => Selected && Count > 0;
+        
+        /// <summary>
+        /// The icon the block type.
+        /// </summary>
+        [SerializeField] private Image m_BlockIcon;
 
-            if (m_BlockTypeId == slot.blockTypeId)
-                m_BlockImage.sprite = blockType.iconSelected;
+        /// <summary>
+        /// The count text of the block type    
+        /// </summary>
+        [SerializeField] private Text m_Counter;
+
+        /// <summary>
+        /// The internal block type ID.
+        /// </summary>
+        private int m_BlockTypeId;
+
+        /// <summary>
+        /// The internal number of blocks in this slot.
+        /// </summary>
+        private int m_Count;
+
+        /// <summary>
+        /// The selected flag for this slot.
+        /// </summary>
+        private bool m_Selected;
+
+        /// <summary>
+        /// Shows or hides this inventory slot.
+        /// </summary>
+        /// <param name="enabled">True to show or false to hide.</param>
+        public void SetEnabled(bool enabled)
+        {
+            if (BlockTypeId > 0)
+            {
+                m_BlockIcon.enabled = enabled;
+                m_Counter.enabled = enabled;
+            }
             else
-                m_BlockImage.sprite = blockType.iconNormal;
+            {
+                m_BlockIcon.enabled = false;
+                m_Counter.enabled = false;
+            }
         }
     }
 }

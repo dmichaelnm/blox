@@ -1,534 +1,743 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Blox.Environment.Config;
-using Blox.Environment.Jobs;
-using Blox.MainMenu;
-using Blox.Utility;
-using Game;
+using Blox.CommonNS;
+using Blox.ConfigurationNS;
+using Blox.EnvironmentNS.GeneratorNS;
+using Blox.EnvironmentNS.JobsNS;
+using Blox.GameNS;
+using Blox.PlayerNS;
+using Blox.UINS;
+using Blox.UtilitiesNS;
+using JetBrains.Annotations;
 using Unity.Jobs;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using IJob = Blox.Environment.Jobs.IJob;
-using Random = System.Random;
 
-namespace Blox.Environment
+namespace Blox.EnvironmentNS
 {
-    [Serializable]
-    public struct NoiseParameter
-    {
-        public int noiseScale;
-        public Vector2 seed;
-        public int octaves;
-        public float frequency;
-        public float redistribution;
-        [Range(0f, 1f)] public float redistributionScale;
-    }
-
+    /// <summary>
+    /// This component manages the chunk handling in the game. Game objects using this component should be named
+    /// "Chunk Manager".
+    /// </summary>
     public class ChunkManager : MonoBehaviour
     {
-        public enum State
+        /// <summary>
+        /// Internal enumaration of states used by the chunk manager.
+        /// </summary>
+        internal enum State
         {
-            Starting,
-            LoadingChunks,
-            EnqueuingChunks,
-            InstantiatingChunks,
+            /// <summary>
+            /// Does nothing.
+            /// </summary>
+            DoNothing,
+
+            /// <summary>
+            /// Starts all jobs for loading or generating chunk data 
+            /// </summary>
+            StartLoadingChunks,
+
+            /// <summary>
+            /// Receives the loaded chunk data and stores it in the cache
+            /// </summary>
+            StoreLoadedChunks,
+
+            /// <summary>
+            /// Finds the chunks that needs to be created
+            /// </summary>
+            EnqueueNewChunks,
+
+            /// <summary>
+            /// Creates new chunk objects
+            /// </summary>
+            CreatingNewChunks,
+
+            /// <summary>
+            /// Idle (input events are processed and unused chunks and chunk data containers are cleaned up)
+            /// </summary>
             Idle
         }
 
-        public struct JobInfo<T> where T : IJob
+        /// <summary>
+        /// A flag that indicates that the chunk manager is full initialized and game ready.
+        /// </summary>
+        public bool Initialized { get; private set; }
+
+        /// <summary>
+        /// A flag for locking the chunk manager
+        /// </summary>
+        public bool Locked { get; private set; }
+
+        /// <summary>
+        /// Returns the instance of this chunk manager.
+        /// </summary>
+        /// <returns>Chunk manager</returns>
+        public static ChunkManager GetInstance(string name = "Chunk Manager")
         {
-            public T job;
-            public JobHandle handle;
+            return GameObject.Find(name)?.GetComponent<ChunkManager>();
         }
 
-        public static ChunkManager GetInstance()
-        {
-            return GameObject.Find("Chunk Manager").GetComponent<ChunkManager>();
-        }
 
-        [Header("Chunk Manager Properties")]
-        // ----------------------------------
-        public ChunkSize chunkSize;
+        /// <summary>
+        /// The size of a chunk.
+        /// </summary>
+        [Header("Sizing Properties")] public ChunkSize ChunkSize;
 
+        /// <summary>
+        /// The number of visible chunks from starting from the current chunk.
+        /// </summary>
         public int visibleChunks = 2;
-        public float purgeTimeout = 60f;
-        public float purgeInterval = 5f;
-        public float waterOffset = -0.1f;
-        public bool lockMouse;
 
-        [Header("Terrain Properties")]
-        // ----------------------------------
-        public int baseLine = 32;
+        /// <summary>
+        /// The offset of the top face of the water mesh.
+        /// </summary>
+        public float waterTopOffset = -0.1f;
+        
+        /// <summary>
+        /// The maintenance interval in secons.
+        /// </summary>
+        [Header("Maintenance Properties")] public float maintenanceInterval = 60f;
 
-        public int randomSeed;
-        public NoiseParameter terrainNoiseParameter;
-        public float terrainAmplitude = 30f;
-        public NoiseParameter waterNoiseParameter;
-        public float waterAmplitude = 10f;
-        public int waterLineOffset = -1;
-        public NoiseParameter stoneNoiseParameter;
-        [Range(0f, 1f)] public float stoneThreshold = 0.5f;
-        public int stoneLevelRelative = 15;
-        public int stoneScattering = 4;
-        public int snowLevelRelative = 25;
-        public int snowScattering = 4;
+        /// <summary>
+        /// The lifetime of a inactive chunk data before it will be purged from the cache.
+        /// </summary>
+        public float chunkDataLifetime = 120f;
 
-        [Header("Tree Properties")]
-        // ----------------------------------
-        public int maxTreeCount = 50;
+        /// <summary>
+        /// Generator parameter used for world generation.
+        /// </summary>
+        [Header("Generator Properties")] public GeneratorParams GeneratorParams;
 
-        public NoiseParameter treeNoiseParameter;
-        [Range(0f, 1f)] public float treeThreshold = 0.5f;
-        public int minTreeHeight = 4;
-        public int maxTreeHeight = 8;
-
-        [Header("Resources Probabilities")]
-        // ----------------------------------
-        [Range(0f, 1f)]
-        public float coalProbability = 0.2f;
-
-        // ----------------------------------
-        public bool initialized { get; private set; }
-
-        // ----------------------------------
-        public delegate void ChunkManagerInitialized();
-
-        public event ChunkManagerInitialized onInitialized;
-
-        // ----------------------------------
-        private State m_State = State.Starting;
-        private State m_LastState = State.Idle;
-        private Queue<JobInfo<IChunkDataProvider>> m_ChunkGenerationJobs;
-        private Queue<ChunkData> m_InstantiatingChunks;
-        private ChunkPosition m_LoadingPosition;
-        private ChunkPosition m_LastLoadingPosition;
-        private Dictionary<string, ChunkData> m_ChunkDataCache;
-        private float m_PurgeTimer;
-
+        /// <summary>
+        /// Returns a chunk data container from the internal cache for the given coordinates of a chunks position. If
+        /// the chunk is not in the cache, null is returned. 
+        /// </summary>
+        /// <param name="x">The X coordinate of a chunks position</param>
+        /// <param name="z">The Z coordinate of a chunks position</param>
         public ChunkData this[int x, int z]
         {
             get
             {
-                var key = ChunkPosition.GetCacheKey(x, z);
-                return m_ChunkDataCache.TryGetValue(key, out var chunkData) ? chunkData : null;
+                var cacheKey = ChunkPosition.ToCacheKey(x, z);
+                return m_ChunkDataCache.TryGetValue(cacheKey, out var chunkData) ? chunkData : null;
             }
         }
 
-        public ChunkData this[ChunkPosition position] => this[position.x, position.z];
+        /// <summary>
+        /// Returns a chunk data container from the internal cache for the given chunks position. If
+        /// the chunk is not in the cache, null is returned. 
+        /// </summary>
+        /// <param name="chunkPosition">A chunks position</param>
+        public ChunkData this[ChunkPosition chunkPosition] => this[chunkPosition.X, chunkPosition.Z];
 
-        public void OnChunkChanged(ChunkData chunkData)
+        /// <summary>
+        /// This event is triggered when the chunk manager is initialized.
+        /// </summary>
+        public event Events.ComponentEvent<ChunkManager> OnChunkManagerInitialized;
+
+        /// <summary>
+        /// This event is triggered before the chunk manager will be destroyed.
+        /// </summary>
+        public event Events.ComponentEvent<ChunkManager> OnChunkManagerDestroyed;
+
+        /// <summary>
+        /// Internal storage of all loaded chunk data container.
+        /// </summary>
+        private Dictionary<string, ChunkData> m_ChunkDataCache;
+
+        /// <summary>
+        /// The current chunk position of the player.
+        /// </summary>
+        private ChunkPosition m_CurrentChunkPosition;
+
+        /// <summary>
+        /// The state of this chunk manager.
+        /// </summary>
+        private State m_State
         {
-            LoadChunkData(chunkData.chunkPosition);
+            get => m_StateValue;
+            set
+            {
+                if (m_StateValue != value)
+                {
+                    Debug.Log($"State changed from [{m_StateValue}] to [{value}]: {m_PerfomanceInfo}");
+                    m_PerfomanceInfo.StartMeasure();
+                }
+
+                m_StateValue = value;
+            }
         }
 
-        public void RefreshChunkMesh(ChunkData chunkData, bool async = true)
+        /// <summary>
+        /// Internal state value for the property "m_State".
+        /// </summary>
+        private State m_StateValue;
+
+        /// <summary>
+        /// The performance info struct.
+        /// </summary>
+        private PerfomanceInfo m_PerfomanceInfo;
+
+
+        /// <summary>
+        /// The queue that holds all active loading or generating chunk data jobs.
+        /// </summary>
+        private Queue<JobData<IChunkDataProvider>> m_LoadChunkJobQueue;
+
+        /// <summary>
+        /// The queue that holds all active saving chunk data jobs.
+        /// </summary>
+        private Queue<JobData<SaveChunkJob>> m_SaveChunkJobQueue;
+
+        /// <summary>
+        /// The queue with the chunk data container for which chunk objects have to be created.
+        /// </summary>
+        private Queue<ChunkData> m_NewChunksQueue;
+
+        /// <summary>
+        /// The maintenance timer.
+        /// </summary>
+        private float m_MaintenanceTimer;
+        
+        /// <summary>
+        /// The main menu handler.
+        /// </summary>
+        [Header("Internal Settings")] [SerializeField]
+        private MainMenu m_MainMenu;
+        
+        /// <summary>
+        /// Creates or updates the chunk for the given chunk data container.
+        /// </summary>
+        /// <param name="chunkData">A chunk data container</param>
+        /// <param name="async">When true, the process runs in a coroutine</param>
+        public void RecreateChunk([NotNull] ChunkData chunkData, bool async = false)
         {
             if (async)
-                StartCoroutine(UpdateChunkMeshAsync(chunkData));
+                StartCoroutine(CreateOrUpdateChunkObjectAsync(chunkData));
             else
-                UpdateChunkMeshSync(chunkData);
+                CreateOrUpdateChunkObjectSync(chunkData);
         }
 
+        /// <summary>
+        /// Unlocks the chunk manager.
+        /// </summary>
+        public void Unlock()
+        {
+            Locked = false;
+            Cursor.lockState = CursorLockMode.Locked;
+        }
+
+        /// <summary>
+        /// Starts the chunk manager.
+        /// </summary>
+        public void StartNew()
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Locked = false;
+            m_State = State.StartLoadingChunks;
+        }
+
+        /// <summary>
+        /// Starts to fill empty blocks with fluids
+        /// </summary>
+        public void StartFillingFluidBlocks(Vector3Int globalPosition)
+        {
+            var chunkDataSet = new HashSet<ChunkData>();
+            FillFluidBlocks(globalPosition, chunkDataSet);
+            foreach (var chunkData in chunkDataSet)
+                RecreateChunk(chunkData);
+        }
+
+        /// <summary>
+        /// Returns the block type from the global position.
+        /// </summary>
+        /// <param name="globalPosition">Global position vector</param>
+        /// <returns>The block type at the position</returns>
+        public BlockType GetBlockType(Vector3Int globalPosition)
+        {
+            var chunkPosition = ChunkPosition.FromGlobalPosition(ChunkSize, globalPosition);
+            var chunkData = this[chunkPosition];
+            var localPosition = chunkPosition.ToLocalPosition(ChunkSize, globalPosition);
+            var blockType = chunkData[localPosition];
+            return blockType;
+        }
+
+        /// <summary>
+        /// Initialization of the chunk manager. 
+        /// </summary>
         private void Awake()
         {
-            if (lockMouse)
-                Cursor.lockState = CursorLockMode.Locked;
-
-            RemoveTempCacheFiles();
+            // Preload the configuration
             Configuration.GetInstance();
+
+            // Show the main menu
+            m_MainMenu.ShowInitialMainMenu();
+
             m_ChunkDataCache = new Dictionary<string, ChunkData>();
-            m_ChunkGenerationJobs = new Queue<JobInfo<IChunkDataProvider>>();
-            m_InstantiatingChunks = new Queue<ChunkData>();
+            m_State = State.DoNothing;
+            m_CurrentChunkPosition = ChunkPosition.Zero;
+            m_LoadChunkJobQueue = new Queue<JobData<IChunkDataProvider>>();
+            m_SaveChunkJobQueue = new Queue<JobData<SaveChunkJob>>();
+            m_NewChunksQueue = new Queue<ChunkData>();
 
-            var preset = PresetManager.GetInstance().selectedPreset;
-            if (preset != null)
-            {
-                randomSeed = preset.randomSeed;
-                var random = new System.Random(randomSeed);
-                
-                terrainNoiseParameter = preset.terrainNoiseParameter;
-                terrainAmplitude = preset.terrainAmplitude;
-                waterNoiseParameter = preset.waterNoiseParameter;
-                waterAmplitude = preset.waterAmplitude;
-                waterLineOffset = preset.waterLineOffset;
-                stoneNoiseParameter = preset.stoneNoiseParameter;
-                stoneLevelRelative = preset.stoneRelativeLevel;
-                stoneScattering = preset.stoneScattering;
-                snowLevelRelative = preset.snowRelativeLevel;
-                snowScattering = preset.snowScattering;
-                maxTreeCount = preset.maxTreeCount;
-                treeNoiseParameter = preset.treeNoiseParameter;
-                treeThreshold = preset.threshold;
-                minTreeHeight = preset.minTreeHeight;
-                maxTreeHeight = preset.maxTreeHeight;
-                coalProbability = preset.coalProbability;
-
-                terrainNoiseParameter.seed = RandomSeedVector();
-                waterNoiseParameter.seed = RandomSeedVector();
-                stoneNoiseParameter.seed = RandomSeedVector();
-                treeNoiseParameter.seed = RandomSeedVector();
-
-                Vector2 RandomSeedVector()
-                {
-                    return new Vector2(random.Next(-65535, 65535), random.Next(-65535, 65535));
-                }
-            }
+            m_PerfomanceInfo = new PerfomanceInfo();
+            m_PerfomanceInfo.StartMeasure();
         }
 
+        /// <summary>
+        /// This method is called before the chunk manager is destroyed.
+        /// </summary>
+        private void OnDestroy()
+        {
+            OnChunkManagerDestroyed?.Invoke(this);
+        }
+
+        /// <summary>
+        /// Update method is called per frame.
+        /// </summary>
         private void Update()
         {
-            var startTime = Time.realtimeSinceStartup;
+            if (!Locked)
+            {
+                if (m_State == State.DoNothing)
+                    return;
 
-            if (m_State == State.Starting)
-            {
-                m_LoadingPosition = ChunkPosition.Zero;
-                LoadChunkData(m_LoadingPosition);
-            }
-            else if (m_State == State.LoadingChunks)
-            {
-                ReadChunkLoadingResults();
-            }
-            else if (m_State == State.EnqueuingChunks)
-            {
-                EnqueueingChunks();
-            }
-            else if (m_State == State.InstantiatingChunks)
-            {
-                InstantiatingChunks();
-            }
-            else if (m_State == State.Idle)
-            {
-                DestroyChunks();
-                m_PurgeTimer += Time.deltaTime;
-                if (m_PurgeTimer > purgeInterval)
+                if (m_State == State.StartLoadingChunks)
+                    StartLoadingChunks();
+                else if (m_State == State.StoreLoadedChunks)
+                    StoreLoadedChunks();
+                else if (m_State == State.EnqueueNewChunks)
+                    EnqueueNewChunks();
+                else if (m_State == State.CreatingNewChunks)
+                    CreatingNewChunks();
+                else if (m_State == State.Idle)
                 {
-                    PurgeChunkData();
-                    m_PurgeTimer = 0f;
+                    Maintainance();
+                    HandleInputEvents();
                 }
-
-                if (Input.GetKeyUp(KeyCode.Escape))
-                {
-                    SceneManager.LoadScene("MainMenuScene");
-                }
-            }
-
-            if (m_State != m_LastState)
-            {
-                var duration = (Time.realtimeSinceStartup - startTime) * 1000f;
-                Debug.Log("State = " + m_State + ", Time = " + duration + "ms");
-                m_LastState = m_State;
             }
         }
 
-        private void LoadChunkData(ChunkPosition position)
+        /// <summary>
+        /// Starts all chunk loading and generating jobs.
+        /// </summary>
+        private void StartLoadingChunks()
         {
-            m_LoadingPosition = position;
-            for (var z = position.z - visibleChunks - 1; z <= position.z + visibleChunks + 1; z++)
+            // Iterate over all visible plus one chunk positions
+            ChunkPosition.Iterate(m_CurrentChunkPosition, visibleChunks + 1, chunkPosition =>
             {
-                for (var x = position.x - visibleChunks - 1; x <= position.x + visibleChunks + 1; x++)
+                // Only if the chunk data is not in cache, action is required
+                if (!m_ChunkDataCache.ContainsKey(chunkPosition.ToCacheKey()))
                 {
-                    var chunkPos = new ChunkPosition(x, z);
-                    if (!m_ChunkDataCache.ContainsKey(chunkPos.cacheKey))
+                    // Check if the chunk data is already persistet
+                    var path = Game.TemporaryDirectory + "/" + chunkPosition.ToCacheFilename();
+                    if (File.Exists(path))
                     {
-                        var info = new JobInfo<IChunkDataProvider>();
-                        var path = GameConstants.TemporaryPath + "/" + chunkPos.cacheFilename;
-                        if (File.Exists(path))
-                        {
-                            var job = new ChunkLoadingJob();
-                            job.Initialize(chunkSize, new ChunkPosition(x, z), path);
-                            info.job = job;
-                            info.handle = job.Schedule();
-                            Debug.Log("loading");
-                        }
-                        else
-                        {
-                            var job = new ChunkGenerationJob();
-                            job.Initialize(
-                                chunkSize,
-                                new ChunkPosition(x, z),
-                                baseLine,
-                                randomSeed,
-                                terrainNoiseParameter,
-                                terrainAmplitude,
-                                waterNoiseParameter,
-                                waterAmplitude,
-                                waterLineOffset,
-                                stoneNoiseParameter,
-                                stoneThreshold,
-                                stoneLevelRelative,
-                                stoneScattering,
-                                snowLevelRelative,
-                                snowScattering,
-                                maxTreeCount,
-                                treeNoiseParameter,
-                                treeThreshold,
-                                minTreeHeight,
-                                maxTreeHeight,
-                                coalProbability
-                            );
-                            info.job = job;
-                            info.handle = job.Schedule();
-                        }
-
-                        m_ChunkGenerationJobs.Enqueue(info);
+                        // Start the chunk data loading job
+                        var job = new LoadChunkJob();
+                        job.Initialize(ChunkSize, chunkPosition, path);
+                        var jobData = new JobData<IChunkDataProvider>(job, job.Schedule());
+                        m_LoadChunkJobQueue.Enqueue(jobData);
+                    }
+                    else
+                    {
+                        // Start the chunk data generation job
+                        var job = new GenerateChunkJob();
+                        job.Initialize(ChunkSize, chunkPosition, GeneratorParams);
+                        var jobData = new JobData<IChunkDataProvider>(job, job.Schedule());
+                        m_LoadChunkJobQueue.Enqueue(jobData);
                     }
                 }
-            }
 
-            m_State = State.LoadingChunks;
+                // After starting all jobs start to read results
+                m_State = State.StoreLoadedChunks;
+            });
         }
 
-        private void ReadChunkLoadingResults()
+        /// <summary>
+        /// Reads the results from next completed loading or generating job and store it in the cache.
+        /// </summary>
+        private void StoreLoadedChunks()
         {
-            if (m_ChunkGenerationJobs.Count == 0)
+            // If no more jobs left in the queue switch to the next state
+            if (m_LoadChunkJobQueue.Count == 0)
             {
-                m_State = State.EnqueuingChunks;
+                m_State = State.EnqueueNewChunks;
                 return;
             }
 
-            var info = m_ChunkGenerationJobs.Dequeue();
-            if (info.handle.IsCompleted)
+            // Get the next job from the queue and check if the job is completed
+            var jobData = m_LoadChunkJobQueue.Dequeue();
+            var handle = jobData.Handle;
+            if (handle.IsCompleted)
             {
-                var job = info.job;
-                info.handle.Complete();
-                var chunkData = new ChunkData(this, job.GetChunkPosition(), job.GetBlockTypeIdArray());
-
-                m_ChunkDataCache[chunkData.cacheKey] = chunkData;
+                // Job is completed and the result can be read
+                handle.Complete();
+                var job = jobData.Job;
+                var chunkPosition = job.GetChunkPosition();
+                var chunkData = new ChunkData(chunkPosition, job.GetResult());
+                m_ChunkDataCache.Add(chunkPosition.ToCacheKey(), chunkData);
                 job.Dispose();
             }
             else
-                m_ChunkGenerationJobs.Enqueue(info);
-        }
-
-        private void EnqueueingChunks()
-        {
-            for (var z = m_LoadingPosition.z - visibleChunks; z <= m_LoadingPosition.z + visibleChunks; z++)
             {
-                for (var x = m_LoadingPosition.x - visibleChunks; x <= m_LoadingPosition.x + visibleChunks; x++)
-                {
-                    var pos = new ChunkPosition(x, z);
-                    var chunk = gameObject.GetChildObject(pos.cacheKey);
-                    if (chunk == null)
-                        m_InstantiatingChunks.Enqueue(this[pos]);
-                }
+                // Job is not completed so put him back in the queue
+                m_LoadChunkJobQueue.Enqueue(jobData);
             }
-
-            m_State = State.InstantiatingChunks;
         }
 
-        private void InstantiatingChunks()
+        /// <summary>
+        /// Detects the chunks that needs to be created and enqueues them.
+        /// </summary>
+        private void EnqueueNewChunks()
         {
-            if (!initialized)
+            ChunkPosition.Iterate(m_CurrentChunkPosition, visibleChunks, chunkPosition =>
             {
-                var chunk = gameObject.GetChildObject(ChunkPosition.Zero.cacheKey);
+                var chunkGO = gameObject.GetChild(chunkPosition.ToCacheKey());
+                if (chunkGO == null)
+                {
+                    // No chunk object found, so it must be created
+                    m_NewChunksQueue.Enqueue(this[chunkPosition]);
+                }
+            });
+            m_State = State.CreatingNewChunks;
+        }
+
+        /// <summary>
+        /// Takes a chunk data container from the queue and starts to create the chunk object.
+        /// </summary>
+        private void CreatingNewChunks()
+        {
+            if (!Initialized)
+            {
+                // Checking, if there is already a chunk object for the coordinates 0:0. If so, the chunk manager is
+                // initialized and ready to go.
+                var chunk = gameObject.GetChild(ChunkPosition.Zero.ToCacheKey());
                 if (chunk != null)
                 {
-                    initialized = true;
-                    onInitialized?.Invoke();
+                    Initialized = true;
+                    OnChunkManagerInitialized?.Invoke(this);
+                    var playerController = PlayerController.GetInstance();
+                    playerController.OnPlayerMoved += OnPlayerMoved;
                 }
             }
 
-            if (m_InstantiatingChunks.Count == 0 && initialized)
+            // Check if there are chunk data container left in the queue and the chunk manager is already initialized.
+            if (Initialized && m_NewChunksQueue.Count == 0)
             {
                 m_State = State.Idle;
-                return;
             }
-
-            if (m_InstantiatingChunks.Count > 0)
+            else if (m_NewChunksQueue.Count > 0)
             {
-                var chunkData = m_InstantiatingChunks.Dequeue();
-                RefreshChunkMesh(chunkData);
-            }
-        }
-
-        private void CreateTerrainMesh(Dictionary<int, ChunkMesh> meshCache, ChunkData chunkData, int x, int y, int z,
-            BlockType blockType)
-        {
-            for (var f = 0; f < 6; f++)
-            {
-                var face = (BlockFace)f;
-                var neighbour = chunkData[x, y, z, face];
-                if (!(neighbour is { isSolid: true }))
-                    UpdateMeshData(meshCache, x, y, z, blockType, face,
-                        ChunkMesh.Flags.CastShadow | ChunkMesh.Flags.CreateCollider,
-                        LayerMask.NameToLayer("Terrain"));
+                // Start the creation of the next chunk object
+                var chunkData = m_NewChunksQueue.Dequeue();
+                RecreateChunk(chunkData, true);
             }
         }
 
-        private void CreateFluidMesh(Dictionary<int, ChunkMesh> meshCache, ChunkData chunkData, int x, int y, int z,
-            BlockType blockType)
+        /// <summary>
+        /// Create the mesh data for the chunk data container and attach it to the corresponding chunk objekt.
+        /// The chunk objekt will be created, if not exists yet. This method is called as a coroutine.
+        /// </summary>
+        /// <param name="chunkData">Chunk data container</param>
+        /// <returns>An enumerator</returns>
+        private IEnumerator CreateOrUpdateChunkObjectAsync(ChunkData chunkData)
         {
-            var neighbour = chunkData[x, y, z, BlockFace.Top];
-            if (!(neighbour is { isFluid: true }))
-                UpdateMeshData(meshCache, x, y, z, blockType, BlockFace.Top, ChunkMesh.Flags.None,
-                    LayerMask.NameToLayer("Water"), waterOffset);
-        }
+            // Contains for every used texture type
+            var meshes = new Dictionary<TextureType, ChunkMesh>();
 
-        private void UpdateMeshData(Dictionary<int, ChunkMesh> meshCache, int x, int y, int z, BlockType blockType,
-            BlockFace face, ChunkMesh.Flags flags, LayerMask layer, float offset = 0f)
-        {
-            var textureType = blockType.GetTextureType(face);
-
-            if (!meshCache.ContainsKey(textureType.id))
-                meshCache.Add(textureType.id, new ChunkMesh(textureType, flags, layer));
-            var meshEntry = meshCache[textureType.id];
-
-            var vertexCount = meshEntry.vertices.Count;
-            var basePos = new Vector3(x, y, z);
-
-            for (var i = 0; i < 4; i++)
+            for (var y = 0; y < ChunkSize.Height; y++)
             {
-                var v = ChunkMesh.Vertices[(int)face, i];
-                v.y *= 1 + offset;
-                meshEntry.vertices.Add(basePos + v);
-                meshEntry.uv.Add(ChunkMesh.UV[i]);
-            }
-
-            for (var i = 0; i < 6; i++)
-                meshEntry.triangles.Add(vertexCount + ChunkMesh.Triangles[i]);
-        }
-
-        private void DestroyChunks()
-        {
-            if (!Equals(m_LoadingPosition, m_LastLoadingPosition))
-            {
-                var startTime = Time.realtimeSinceStartup;
-                var count = 0;
-                for (var i = transform.childCount - 1; i >= 0; i--)
+                for (var z = 0; z < ChunkSize.Width; z++)
                 {
-                    var obj = transform.GetChild(i).gameObject;
-                    var chunk = obj.GetComponent<Chunk>();
-
-                    var pos = chunk.chunkPosition;
-                    var dx = Mathf.Abs(m_LoadingPosition.x - pos.x);
-                    var dz = Mathf.Abs(m_LoadingPosition.z - pos.z);
-                    if (dx > visibleChunks || dz > visibleChunks)
+                    for (var x = 0; x < ChunkSize.Width; x++)
                     {
-                        chunk.RemoveChilren();
-                        Destroy(obj);
-                        count++;
-                    }
-                }
-
-                m_LastLoadingPosition = m_LoadingPosition;
-                var duration = (Time.realtimeSinceStartup - startTime) * 1000f;
-                Debug.Log("Action = Destroy Chunks, Count = " + count + ", Time = " + duration + "ms");
-            }
-        }
-
-        private void PurgeChunkData()
-        {
-            if (initialized)
-            {
-                var startTime = Time.realtimeSinceStartup;
-                var count = 0;
-                var candidates = 0;
-                var distance = visibleChunks + 1;
-                foreach (var chunkData in m_ChunkDataCache.Values.ToArray())
-                {
-                    var pos = chunkData.chunkPosition;
-                    var dx = Mathf.Abs(m_LoadingPosition.x - pos.x);
-                    var dz = Mathf.Abs(m_LoadingPosition.z - pos.z);
-                    if (dx > distance || dz > distance)
-                    {
-                        candidates++;
-                        if (chunkData.purgeTimer > purgeTimeout)
+                        var blockType = chunkData[x, y, z];
+                        if (blockType.IsSolid)
                         {
-                            count++;
-                            chunkData.Save();
-                            m_ChunkDataCache.Remove(chunkData.cacheKey);
+                            for (var f = 0; f < 6; f++)
+                            {
+                                var face = (BlockFace)f;
+                                var neighbour = chunkData[x, y, z, face];
+                                if (!(neighbour is { IsSolid: true }))
+                                    UpdateChunkMesh(meshes, x, y, z, blockType, face,
+                                        ChunkMesh.Flags.CastShadows | ChunkMesh.Flags.CreateCollider,
+                                        LayerMask.NameToLayer("Terrain"));
+                            }
                         }
-                    }
-                    else
-                        chunkData.StayAlive();
-                }
-
-                var duration = (Time.realtimeSinceStartup - startTime) * 1000f;
-                Debug.Log("Action = Purge Chunk Data, Candidates = " + candidates + ", Removed = " + count +
-                          ", Time = " +
-                          duration + "ms");
-            }
-        }
-
-        private void RemoveTempCacheFiles()
-        {
-            var path = GameConstants.TemporaryPath;
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-
-            var files = Directory.GetFiles(GameConstants.TemporaryPath);
-            foreach (var file in files)
-                File.Delete(file);
-
-            Debug.Log("Removes " + files.Length + " temporary files.");
-        }
-
-        private IEnumerator UpdateChunkMeshAsync(ChunkData chunkData)
-        {
-            var meshCache = new Dictionary<int, ChunkMesh>();
-            var size = chunkData.chunkSize;
-
-            for (var y = 0; y < size.height; y++)
-            {
-                for (var z = 0; z < size.width; z++)
-                {
-                    for (var x = 0; x < size.width; x++)
-                    {
-                        var type = chunkData[x, y, z];
-                        if (type.isSolid)
-                            CreateTerrainMesh(meshCache, chunkData, x, y, z, type);
-                        if (type.isFluid)
-                            CreateFluidMesh(meshCache, chunkData, x, y, z, type);
+                        else if (blockType.IsFluid)
+                        {
+                            var neighbour = chunkData[x, y, z, BlockFace.Top];
+                            if (neighbour == null || neighbour.IsEmpty)
+                                UpdateChunkMesh(meshes, x, y, z, blockType, BlockFace.Top, ChunkMesh.Flags.None,
+                                    LayerMask.NameToLayer("Water"), waterTopOffset);
+                        }
                     }
                 }
 
                 yield return null;
             }
 
-            var pos = chunkData.chunkPosition;
-            var obj = gameObject.GetChildObject(chunkData.cacheKey, true);
-            obj.transform.parent = transform;
-            obj.transform.position = new Vector3(pos.x * chunkSize.width, 0, pos.z * chunkSize.width);
-
-            var chunk = obj.AddComponent<Chunk>();
-            chunk.chunkPosition = chunkData.chunkPosition;
-
-            chunk.CreateMeshes(meshCache.Values.ToArray());
+            CreateChunk(chunkData.ChunkPosition, meshes);
         }
 
-        private void UpdateChunkMeshSync(ChunkData chunkData)
+        /// <summary>
+        /// Create the mesh data for the chunk data container and attach it to the corresponding chunk objekt.
+        /// The chunk objekt will be created, if not exists yet.
+        /// </summary>
+        /// <param name="chunkData">Chunk data container</param>
+        private void CreateOrUpdateChunkObjectSync(ChunkData chunkData)
         {
-            var meshCache = new Dictionary<int, ChunkMesh>();
-            var size = chunkData.chunkSize;
+            // Contains for every used texture type
+            var meshes = new Dictionary<TextureType, ChunkMesh>();
 
-            for (var y = 0; y < size.height; y++)
+            // Calculating the mesh data
+            for (var y = 0; y < ChunkSize.Height; y++)
             {
-                for (var z = 0; z < size.width; z++)
+                for (var z = 0; z < ChunkSize.Width; z++)
                 {
-                    for (var x = 0; x < size.width; x++)
+                    for (var x = 0; x < ChunkSize.Width; x++)
                     {
-                        var type = chunkData[x, y, z];
-                        if (type.isSolid)
-                            CreateTerrainMesh(meshCache, chunkData, x, y, z, type);
-                        if (type.isFluid)
-                            CreateFluidMesh(meshCache, chunkData, x, y, z, type);
+                        var blockType = chunkData[x, y, z];
+                        if (blockType.IsSolid)
+                        {
+                            for (var f = 0; f < 6; f++)
+                            {
+                                var face = (BlockFace)f;
+                                var neighbour = chunkData[x, y, z, face];
+                                if (!(neighbour is { IsSolid: true }))
+                                    UpdateChunkMesh(meshes, x, y, z, blockType, face,
+                                        ChunkMesh.Flags.CastShadows | ChunkMesh.Flags.CreateCollider,
+                                        LayerMask.NameToLayer("Terrain"));
+                            }
+                        }
+                        else if (blockType.IsFluid)
+                        {
+                            var neighbour = chunkData[x, y, z, BlockFace.Top];
+                            if (neighbour == null || neighbour.IsEmpty)
+                                UpdateChunkMesh(meshes, x, y, z, blockType, BlockFace.Top, ChunkMesh.Flags.None,
+                                    LayerMask.NameToLayer("Water"), waterTopOffset);
+                        }
                     }
                 }
             }
 
-            var pos = chunkData.chunkPosition;
-            var obj = gameObject.GetChildObject(chunkData.cacheKey, true);
-            obj.transform.parent = transform;
-            obj.transform.position = new Vector3(pos.x * chunkSize.width, 0, pos.z * chunkSize.width);
+            CreateChunk(chunkData.ChunkPosition, meshes);
+        }
 
-            var chunk = obj.AddComponent<Chunk>();
-            chunk.chunkPosition = chunkData.chunkPosition;
+        /// <summary>
+        /// Add the the vertices, triangles and UV coordinates to the meshes cache.
+        /// </summary>
+        /// <param name="meshes">Cache for the meshes</param>
+        /// <param name="x">Local X coordinate</param>
+        /// <param name="y">Local Y coordinate</param>
+        /// <param name="z">Local Z coordinate</param>
+        /// <param name="blockType">Block type</param>
+        /// <param name="face">The face of the block</param>
+        /// <param name="flags">A set of flags</param>
+        /// <param name="layerMask">A layer mask</param>
+        /// <param name="topOffset">The offset of the top face</param>
+        private void UpdateChunkMesh(Dictionary<TextureType, ChunkMesh> meshes, int x, int y, int z,
+            BlockType blockType, BlockFace face, ChunkMesh.Flags flags, LayerMask layerMask,
+            float topOffset = 0f)
+        {
+            var textureType = blockType[face];
 
-            chunk.CreateMeshes(meshCache.Values.ToArray());
+            if (!meshes.ContainsKey(textureType))
+                meshes.Add(textureType, new ChunkMesh(textureType, flags, layerMask));
+            var mesh = meshes[textureType];
+
+            var vertexCount = mesh.Vertices.Count;
+            var position = new Vector3(x, y, z);
+
+            for (var v = 0; v < 4; v++)
+            {
+                var vector = ChunkMesh.FaceVertices[(int)face, v];
+                vector.y *= 1 + topOffset;
+                mesh.Vertices.Add(position + vector);
+                mesh.UV.Add(ChunkMesh.DefaultUV[v]);
+            }
+
+            for (var t = 0; t < 6; t++)
+            {
+                mesh.Triangles.Add(vertexCount + ChunkMesh.TriangleOffsets[t]);
+            }
+        }
+
+        /// <summary>
+        /// Creates or updates the chunk object and all child objects for the meshes.
+        /// </summary>
+        /// <param name="chunkPosition">The position of the chunk</param>
+        /// <param name="meshes">The mesh data containers</param>
+        private void CreateChunk(ChunkPosition chunkPosition, Dictionary<TextureType, ChunkMesh> meshes)
+        {
+            // Creates the chunk object
+            var chunk = gameObject.GetChild(chunkPosition.ToCacheKey(), true);
+            chunk.transform.parent = transform;
+            chunk.transform.position =
+                new Vector3(chunkPosition.X * ChunkSize.Width, 0, chunkPosition.Z * ChunkSize.Width);
+
+            // Creates the chunk mesh objects
+            foreach (var mesh in meshes.Values)
+            {
+                mesh.Create(chunk);
+            }
+        }
+
+        /// <summary>
+        /// Event method that is called every frame with the actual player position.
+        /// </summary>
+        /// <param name="position">The position of the player</param>
+        private void OnPlayerMoved(PlayerPosition position)
+        {
+            if (position.HasChunkChanged)
+            {
+                // When the chunk has changed, start loading the new chunk data containers around the player
+                m_CurrentChunkPosition = position.CurrentChunkPosition;
+                m_State = State.StartLoadingChunks;
+                // Destroy the chunks that are no longer visible
+                DestroyChunks();
+            }
+        }
+
+        /// <summary>
+        /// Running the maintenance on the chunk data cache.
+        /// </summary>
+        private void Maintainance()
+        {
+            if (Initialized)
+            {
+                // Dispose save jobs
+                if (m_SaveChunkJobQueue.Count > 0)
+                {
+                    var jobData = m_SaveChunkJobQueue.Dequeue();
+                    var handle = jobData.Handle;
+                    var job = jobData.Job;
+                    if (handle.IsCompleted)
+                    {
+                        handle.Complete();
+                        job.Dispose();
+                    }
+                    else
+                        m_SaveChunkJobQueue.Enqueue(jobData);
+                }
+
+                m_MaintenanceTimer += Time.deltaTime;
+                if (m_MaintenanceTimer > maintenanceInterval)
+                {
+                    // Start the maintenance cycle
+                    var startTime = Time.realtimeSinceStartup;
+                    var count = 0;
+                    var candidates = 0;
+                    var distance = visibleChunks + 1;
+
+                    foreach (var chunkData in m_ChunkDataCache.Values.ToArray())
+                    {
+                        var dx = Mathf.Abs(m_CurrentChunkPosition.X - chunkData.ChunkPosition.X);
+                        var dz = Mathf.Abs(m_CurrentChunkPosition.Z - chunkData.ChunkPosition.Z);
+                        if (dx > distance || dz > distance)
+                        {
+                            candidates++;
+                            var time = Time.realtimeSinceStartup - chunkData.LastActive;
+                            if (time > chunkDataLifetime)
+                            {
+                                count++;
+                                // Initialize the job to save the chunk
+                                var job = new SaveChunkJob();
+                                job.Initialize(chunkData,
+                                    Game.TemporaryDirectory + "/" + chunkData.ChunkPosition.ToCacheFilename());
+                                var jobData = new JobData<SaveChunkJob>(job, job.Schedule());
+                                m_SaveChunkJobQueue.Enqueue(jobData);
+                                // Remove the chunk data container from the cache
+                                m_ChunkDataCache.Remove(chunkData.ChunkPosition.ToCacheKey());
+                            }
+                        }
+                        else
+                            chunkData.MarkAsActive();
+                    }
+
+                    var duration = (Time.realtimeSinceStartup - startTime) * 1000f;
+                    Debug.Log($"Maintenance: {candidates} candidates, {count} removed in {duration}ms.");
+
+                    m_MaintenanceTimer = 0f;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Destroys chunks that are no longer visible.
+        /// </summary>
+        private void DestroyChunks()
+        {
+            var startTime = Time.realtimeSinceStartup;
+            var count = 0;
+
+            transform.IterateInverse(chunkObj =>
+            {
+                // Calculate the chunk position
+                var p = chunkObj.position;
+                var cx = MathUtilities.Floor(p.x / ChunkSize.Width);
+                var cz = MathUtilities.Floor(p.z / ChunkSize.Width);
+
+                // Calculate the distances
+                var dx = Mathf.Abs(m_CurrentChunkPosition.X - cx);
+                var dz = Mathf.Abs(m_CurrentChunkPosition.Z - cz);
+                if (dx > visibleChunks || dz > visibleChunks)
+                {
+                    // Destroy all child objects of the chunk
+                    chunkObj.IterateInverse(child => Destroy(child.gameObject));
+                    // Destroy the chunk object
+                    Destroy(chunkObj.gameObject);
+
+                    count++;
+                }
+            });
+
+            var duration = (Time.realtimeSinceStartup - startTime) * 1000f;
+            Debug.Log($"{count} chunks destroyed in {duration}ms.");
+        }
+
+        private void HandleInputEvents()
+        {
+            // Check the escape key to switch to the main menu
+            if (Input.GetKeyUp(KeyCode.Escape))
+            {
+                Locked = true;
+                m_MainMenu.FadeIn();
+                Cursor.lockState = CursorLockMode.Confined;
+            }
+        }
+
+        private void FillFluidBlocks(Vector3Int globalPosition, HashSet<ChunkData> chunkDataSet, int level = 0)
+        {
+            var blockType = GetBlockType(globalPosition);
+            if (blockType.IsEmpty)
+            {
+                //Debug.Log($"[{level}] Empty block at {globalPosition} found.");
+                var faces = new[] { BlockFace.Top, BlockFace.Front, BlockFace.Back, BlockFace.Left, BlockFace.Right };
+                foreach (var face in faces)
+                {
+                    var neighbourPosition = MathUtilities.Neighbour(globalPosition, face);
+                    var neighbourBlockType = GetBlockType(neighbourPosition);
+                    if (neighbourBlockType.IsFluid)
+                    {
+                        //Debug.Log($"[{level}] Fluid neighbour at {neighbourPosition} found.");
+                        var chunkPosition = ChunkPosition.FromGlobalPosition(ChunkSize, globalPosition);
+                        var chunkData = this[chunkPosition];
+                        var localPosition = chunkPosition.ToLocalPosition(ChunkSize, globalPosition);
+                        chunkData.SetBlock(localPosition, neighbourBlockType.ID);
+                        chunkDataSet.Add(chunkData);
+                        
+                        faces = new[]
+                            { BlockFace.Bottom, BlockFace.Front, BlockFace.Back, BlockFace.Left, BlockFace.Right };
+                        foreach (var f in faces)
+                        {
+                            neighbourPosition = MathUtilities.Neighbour(globalPosition, f);
+                            FillFluidBlocks(neighbourPosition, chunkDataSet, level + 1);
+                        }
+                    }
+                }
+            }
         }
     }
 }

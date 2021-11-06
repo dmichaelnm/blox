@@ -1,119 +1,145 @@
-﻿using System;
-using Blox.Environment;
+﻿using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Blox.UI
+namespace Blox.UINS
 {
+    /// <summary>
+    /// This component manages the appearance of the inventory.
+    /// </summary>
     public class Inventory : MonoBehaviour
     {
-        public static Inventory GetInstance()
-        {
-            return GameObject.Find("Inventory").GetComponent<Inventory>();
-        }
+        /// <summary>
+        /// The number of slots in the inventory.
+        /// </summary>
+        public int SlotCount = 10;
 
-        public delegate void InventorySlotSelected(InventorySlot slot);
-        public event InventorySlotSelected onInventorySlotSelected;
-        public int selectedBlockTypeId { get; private set; }
-        
+        /// <summary>
+        /// The prefab for an inventory slot.
+        /// </summary>
         [SerializeField] private GameObject m_SlotPrefab;
-        [SerializeField] private AudioSource m_ErrorSound;
-        
-        private Image m_InventoryImage;
+
+        /// <summary>
+        /// An array with all inventory slots.
+        /// </summary>
         private InventorySlot[] m_Slots;
 
-        public bool Put(int blockTypeId)
+        /// <summary>
+        /// The image of the inventory slots.
+        /// </summary>
+        private Image m_InventoryImage;
+        
+        /// <summary>
+        /// Adds a new block to the inventory.
+        /// </summary>
+        /// <param name="blockTypeId">The type of the block</param>
+        public bool AddBlock(int blockTypeId)
         {
-            var slotIndex = -1;
-            for (var i = 0; i < m_Slots.Length; i++)
+            foreach (var slot in m_Slots)
             {
-                if (m_Slots[i].blockTypeId == 0 || m_Slots[i].blockTypeId == blockTypeId)
+                if (slot.BlockTypeId == 0 || slot.BlockTypeId == blockTypeId)
                 {
-                    slotIndex = i;
-                    break;
-                }
-            }
-
-            m_Slots[slotIndex].blockTypeId = blockTypeId;
-            m_Slots[slotIndex].count++;
-
-            if (slotIndex > -1)
-                return true;
-            
-            m_ErrorSound.Play();
-            return false;
-        }
-
-        public bool Remove(int blockTypeId)
-        {
-            for (var i = 0; i < m_Slots.Length; i++)
-            {
-                if (m_Slots[i].blockTypeId == blockTypeId)
-                {
-                    m_Slots[i].count--;
-                    if (m_Slots[i].count == 0)
-                    {
-                        m_Slots[i].blockTypeId = 0;
-                    }
+                    // We found a suitable slot to store that block, so add the block
+                    slot.BlockTypeId = blockTypeId;
+                    slot.Count++;
                     return true;
                 }
             }
-            m_ErrorSound.Play();
+
+            return false;
+        }
+
+        /// <summary>
+        /// Removes a block from the selected slot.
+        /// </summary>
+        /// <returns>True, if removing the block was successful, otherwise false</returns>
+        public bool RemoveBlock()
+        {
+            foreach (var slot in m_Slots)
+            {
+                if (slot.IsBlockRemovable)
+                {
+                    slot.Count--;
+                    return true;
+                }
+            }
+
             return false;
         }
         
-        public void UpdateSelectionStates(InventorySlot slot)
+        /// <summary>
+        /// Returns the ID of the currently selected block type in this inventory.
+        /// </summary>
+        /// <returns>The ID of the selected block type</returns>
+        public int GetSelectedBlockTypeID()
         {
-            selectedBlockTypeId = slot.blockTypeId;
-            onInventorySlotSelected?.Invoke(slot);
+            return (from slot in m_Slots where slot.IsBlockRemovable select slot.BlockTypeId).FirstOrDefault();
         }
 
+        /// <summary>
+        /// Shows or hides the inventory.
+        /// </summary>
+        /// <param name="enabled">True to show or false to hide.</param>
+        public void SetEnabled(bool enabled)
+        {
+            m_InventoryImage.enabled = enabled;
+            foreach (var slot in m_Slots)
+                slot.SetEnabled(enabled);
+        }   
+        
+        /// <summary>
+        /// This method is called when the component is created.
+        /// </summary>
         private void Awake()
         {
-            var chunkManager = GameObject.Find("Chunk Manager").GetComponent<ChunkManager>();
-            chunkManager.onInitialized += OnChunkManagerInitialized;
-
             m_InventoryImage = GetComponent<Image>();
-
-            for (var i = 0; i < 10; i++)
-                Instantiate(m_SlotPrefab, transform);
             
-            m_Slots = GetComponentsInChildren<InventorySlot>();
+            // Create the inventory slots
+            m_Slots = new InventorySlot[SlotCount];
+            for (var i = 0; i < SlotCount; i++)
+            {
+                var slotObj = Instantiate(m_SlotPrefab, transform);
+                slotObj.name = $"Slot {i}";
+                m_Slots[i] = slotObj.GetComponent<InventorySlot>();
+                m_Slots[i].BlockTypeId = 0;
+            }
         }
-
-        private void OnChunkManagerInitialized()
-        {
-            m_InventoryImage.enabled = true;
-        }
-
+        
+        /// <summary>
+        /// This method is called every frame.
+        /// </summary>
         private void Update()
         {
-            InventorySlot slot = null;
+            var slotIndex = -1;
             if (Input.GetKeyUp(KeyCode.Alpha1))
-                slot = m_Slots[0];
-            else if (Input.GetKeyUp(KeyCode.Alpha2))
-                slot = m_Slots[1];
-            else if (Input.GetKeyUp(KeyCode.Alpha3))
-                slot = m_Slots[2];
-            else if (Input.GetKeyUp(KeyCode.Alpha4))
-                slot = m_Slots[3];
-            else if (Input.GetKeyUp(KeyCode.Alpha5))
-                slot = m_Slots[4];
-            else if (Input.GetKeyUp(KeyCode.Alpha6))
-                slot = m_Slots[5];
-            else if (Input.GetKeyUp(KeyCode.Alpha7))
-                slot = m_Slots[6];
-            else if (Input.GetKeyUp(KeyCode.Alpha8))
-                slot = m_Slots[7];
-            else if (Input.GetKeyUp(KeyCode.Alpha9))
-                slot = m_Slots[8];
-            else if (Input.GetKeyUp(KeyCode.Alpha0))
-                slot = m_Slots[9];
+                slotIndex = 0;
+            if (Input.GetKeyUp(KeyCode.Alpha2))
+                slotIndex = 1;
+            if (Input.GetKeyUp(KeyCode.Alpha3))
+                slotIndex = 2;
+            if (Input.GetKeyUp(KeyCode.Alpha4))
+                slotIndex = 3;
+            if (Input.GetKeyUp(KeyCode.Alpha5))
+                slotIndex = 4;
+            if (Input.GetKeyUp(KeyCode.Alpha6))
+                slotIndex = 5;
+            if (Input.GetKeyUp(KeyCode.Alpha7))
+                slotIndex = 6;
+            if (Input.GetKeyUp(KeyCode.Alpha8))
+                slotIndex = 7;
+            if (Input.GetKeyUp(KeyCode.Alpha9))
+                slotIndex = 8;
+            if (Input.GetKeyUp(KeyCode.Alpha0))
+                slotIndex = 9;
 
-            if (slot != null && slot.blockTypeId > 0)
+            if (slotIndex > -1)
             {
-                UpdateSelectionStates(slot);                
-            }
+                if (m_Slots[slotIndex].BlockTypeId > 0)
+                {
+                    for (var i = 0; i < m_Slots.Length; i++)
+                        m_Slots[i].Selected = i == slotIndex;
+                }
+            }           
         }
     }
 }

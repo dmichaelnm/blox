@@ -1,148 +1,195 @@
 ﻿using System;
-using System.Collections.Generic;
-using Blox.Environment;
-using Blox.Environment.Config;
-using Blox.Environment.PostProcessing;
-using Blox.Player;
-using Blox.Utility;
-using Common;
+using Blox.ConfigurationNS;
+using Blox.EnvironmentNS.PostProcessing;
+using Blox.PlayerNS;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Blox2.UI
+namespace Blox.UINS
 {
+    /// <summary>
+    /// This component shows detailed game information on the canvas.
+    /// </summary>
     public class GameInfo : MonoBehaviour
     {
-        private static long MB = 1024 * 1024;
+        /// <summary>
+        /// The shortcut key that shows or hides the game information panel.
+        /// </summary>
+        public KeyCode Shortcut = KeyCode.F1;
 
-        public KeyCode activationShortcut = KeyCode.F1;
-        public float refreshInterval = 1f;
+        /// <summary>
+        /// Refresh interval of some informations in seconds.
+        /// </summary>
+        public float RefreshInterval = 1f;
 
-        private bool m_GameInfoActive;
-        private PlayerController m_PlayerController;
-        private PlayerSelection m_PlayerSelection;
-        private ChunkManager m_ChunkManager;
-        private Text m_RawPosValue;
-        private Text m_GlobalPosValue;
-        private Text m_LocalPosValue;
-        private Text m_ChunkPosValue;
-        private Text m_MillisPerFrameValue;
-        private Text m_MemoryUsage;
-        private Underwater m_Underwater;
-        private Text m_UnderwaterValue;
-        private Text m_BlockSelectionValue;
-        private float m_Time;
-        private List<MonoBehaviour> m_Items;
+        /// <summary>
+        /// The player controller component.
+        /// </summary>
+        [SerializeField] private PlayerController m_PlayerController;
 
-        public void OnPlayerPositionChanged(Position position)
-        {
-            if (m_GameInfoActive)
-            {
-                m_RawPosValue.text = "X = " + Mathf.Round(position.raw.x * 100f) / 100f + " , Y = " +
-                                     Mathf.Round(position.raw.y * 100f) / 100f +
-                                     " , Z = " + Mathf.Round(position.raw.z * 100f) / 100f;
-                m_GlobalPosValue.text = "X = " + position.global.x + " , Y = " + position.global.y +
-                                        " , Z = " + position.global.z;
-                m_LocalPosValue.text = "X = " + position.local.x + " , Y = " + position.local.y +
-                                       " , Z = " + position.local.z;
-                m_ChunkPosValue.text = "X = " + position.chunk.x + " , Z = " + position.chunk.z;
-            }
-        }
+        /// <summary>
+        /// The player selection component.
+        /// </summary>
+        [SerializeField] private PlayerSelection m_PlayerSelection;
 
-        public void OnPlayerIsUnderwater(bool underwater)
-        {
-            m_UnderwaterValue.text = underwater ? "yes" : "no";
-        }
-        
+        /// <summary>
+        /// The underwater component.
+        /// </summary>
+        [SerializeField] private Underwater m_Underwater;
+
+        /// <summary>
+        /// An array with all text components of the game information panel.
+        /// </summary>
+        private Text[] m_Components;
+
+        /// <summary>
+        /// A flag with the shown or hide state of the game information panel.
+        /// </summary>
+        private bool m_Enabled;
+
+        /// <summary>
+        /// Timestamp of the last frame started.
+        /// </summary>
+        private float m_LastFrameTime;
+
+        /// <summary>
+        /// Timer until the next refresh.
+        /// </summary>
+        private float m_RefreshTimer;
+
+        /// <summary>
+        /// This method is called when the object is created. 
+        /// </summary>
         private void Awake()
         {
-            m_Items = new List<MonoBehaviour>();
+            m_Components = GetComponentsInChildren<Text>();
+            m_Enabled = false;
+            SetEnabled(m_Enabled);
 
-            m_ChunkManager = GameObject.Find("Chunk Manager").GetComponent<ChunkManager>();
-            
-            var player = GameObject.Find("Player");
-            m_PlayerController = player.GetComponent<PlayerController>();
-            m_PlayerController.onPlayerPositionChanged += OnPlayerPositionChanged;
+            m_PlayerController.OnPlayerMoved += OnPlayerMoved;
+            m_PlayerController.OnPlayerControllerDestroyed += OnPlayerControllerDestroyed;
 
-            var selection = GameObject.Find("Selection Block");
-            m_PlayerSelection = selection.GetComponent<PlayerSelection>();
-            m_PlayerSelection.onBlockSelection += OnBlockSelection;
+            m_PlayerSelection.OnBlockSelected += OnBlockSelected;
+            m_PlayerSelection.OnNothingSelected += OnNothingSelected;
+            m_PlayerSelection.OnPlayerSelectionDestroyed += OnPlayerSelectionDestroyed;
 
-            var underwater = GameObject.Find("Underwater");
-            m_Underwater = underwater.GetComponent<Underwater>();
-            m_Underwater.onIsPlayerUnderwater += OnPlayerIsUnderwater;
-
-            m_RawPosValue = gameObject.GetChildObject("RawPosValue").GetComponent<Text>();
-            m_GlobalPosValue = gameObject.GetChildObject("GlobalPosValue").GetComponent<Text>();
-            m_LocalPosValue = gameObject.GetChildObject("LocalPosValue").GetComponent<Text>();
-            m_ChunkPosValue = gameObject.GetChildObject("ChunkPosValue").GetComponent<Text>();
-            m_MillisPerFrameValue = gameObject.GetChildObject("MillisPerFrameValue").GetComponent<Text>();
-            m_MemoryUsage = gameObject.GetChildObject("MemoryUsageValue").GetComponent<Text>();
-            m_UnderwaterValue = gameObject.GetChildObject("UnderwaterValue").GetComponent<Text>();
-            m_BlockSelectionValue = gameObject.GetChildObject("BlockSelectionValue").GetComponent<Text>();
-            
-            m_Items.Add(gameObject.GetChildObject("RawPosLabel").GetComponent<Text>());
-            m_Items.Add(m_RawPosValue);
-            m_Items.Add(gameObject.GetChildObject("GlobalPosLabel").GetComponent<Text>());
-            m_Items.Add(m_GlobalPosValue);
-            m_Items.Add(gameObject.GetChildObject("LocalPosLabel").GetComponent<Text>());
-            m_Items.Add(m_LocalPosValue);
-            m_Items.Add(gameObject.GetChildObject("ChunkPosLabel").GetComponent<Text>());
-            m_Items.Add(m_ChunkPosValue);
-            m_Items.Add(gameObject.GetChildObject("MillisPerFrameLabel").GetComponent<Text>());
-            m_Items.Add(m_MillisPerFrameValue);
-            m_Items.Add(gameObject.GetChildObject("MemoryUsageLabel").GetComponent<Text>());
-            m_Items.Add(m_MemoryUsage);
-            m_Items.Add(gameObject.GetChildObject("UnderwaterLabel").GetComponent<Text>());
-            m_Items.Add(m_UnderwaterValue);
-            m_Items.Add(gameObject.GetChildObject("BlockSelectionLabel").GetComponent<Text>());
-            m_Items.Add(m_BlockSelectionValue);
-            m_Items.Add(GetComponent<Image>());
-            
-            ShowGameInfo(false);
+            m_Underwater.OnPlayerUnderwater += OnPlayerUnderwater;
+            m_Underwater.OnUnderwaterDestroyed += OnUnderwaterDestroyed;
         }
 
-        private void OnBlockSelection(Position position, BlockFace face,
-            PlayerSelection.MouseButtonState mouseButtonState)
+        /// <summary>
+        /// This method is called when nothing is selected.
+        /// </summary>
+        private void OnNothingSelected()
         {
-            if (m_GameInfoActive)
+            m_Components[15].text = "-";
+        }
+
+        /// <summary>
+        /// This method is called when the player selection component is about to be destroyed.
+        /// </summary>
+        /// <param name="component">The player selection component</param>
+        private void OnPlayerSelectionDestroyed(PlayerSelection component)
+        {
+            m_PlayerSelection.OnBlockSelected -= OnBlockSelected;
+            m_PlayerSelection.OnNothingSelected -= OnNothingSelected;
+            m_PlayerSelection.OnPlayerSelectionDestroyed -= OnPlayerSelectionDestroyed;
+        }
+
+        /// <summary>
+        /// This method is called when a block is selected.
+        /// </summary>
+        /// <param name="position">The global block position</param>
+        /// <param name="blockType">The type of the selected block</param>
+        /// <param name="face">The block face</param>
+        /// <param name="mousebuttonstate">The state of the mouse buttons</param>
+        private void OnBlockSelected(Vector3Int position, BlockType blockType, BlockFace face,
+            PlayerSelection.MouseButtonState mousebuttonstate)
+        {
+            m_Components[15].text = $"{blockType.Name} ({face})";
+        }
+
+        /// <summary>
+        /// This method is called when the underwater component is about to be destroyed.
+        /// </summary>
+        /// <param name="underwater">The underwater component</param>
+        private void OnUnderwaterDestroyed(Underwater underwater)
+        {
+            underwater.OnPlayerUnderwater -= OnPlayerUnderwater;
+            underwater.OnUnderwaterDestroyed -= OnUnderwaterDestroyed;
+        }
+
+        /// <summary>
+        /// This method is called when the player is submerged or emerged.
+        /// </summary>
+        /// <param name="underwater"></param>
+        private void OnPlayerUnderwater(bool underwater)
+        {
+            m_Components[13].text = underwater ? "yes" : "no";
+        }
+
+        /// <summary>
+        /// This method is called when the player controller is about to be destroyed.
+        /// </summary>
+        /// <param name="source"></param>
+        private void OnPlayerControllerDestroyed(PlayerController source)
+        {
+            source.OnPlayerMoved -= OnPlayerMoved;
+            source.OnPlayerControllerDestroyed -= OnPlayerControllerDestroyed;
+        }
+
+        /// <summary>
+        /// This method receives events from the player controller about the player position.
+        /// </summary>
+        /// <param name="position">The player position</param>
+        private void OnPlayerMoved(PlayerPosition position)
+        {
+            if (m_Enabled)
             {
-                var chunkData = m_ChunkManager[position.chunk];
-                var blockType = chunkData[position.local];
-                m_BlockSelectionValue.text = blockType.name + " (" + face + ")";
+                var rp = position.CurrentPosition;
+                m_Components[1].text = $"X={rp.x:F2} Y={rp.y:F2} Z={rp.z:F2}";
+                var gp = position.CurrentGlobalBlockPosition;
+                m_Components[3].text = $"X={gp.x} Y={gp.y} Z={gp.z}";
+                var lp = position.CurrentLocalBlockPosition;
+                m_Components[5].text = $"X={lp.x} Y={lp.y} Z={lp.z}";
+                var cp = position.CurrentChunkPosition;
+                m_Components[7].text = $"X={cp.X} Z={cp.Z}";
             }
         }
 
-        private void OnDestroy()
-        {
-            m_PlayerController.onPlayerPositionChanged -= OnPlayerPositionChanged;
-            m_Underwater.onIsPlayerUnderwater -= OnPlayerIsUnderwater;
-        }
-
+        /// <summary>
+        /// This method is called every frame.
+        /// </summary>
         private void Update()
         {
-            if (Input.GetKeyUp(activationShortcut))
+            if (Input.GetKeyUp(Shortcut))
             {
-                m_GameInfoActive = !m_GameInfoActive;
-                ShowGameInfo(m_GameInfoActive);
+                m_Enabled = !m_Enabled;
+                SetEnabled(m_Enabled);
             }
 
-            m_Time += Time.deltaTime;
-            if (m_Time >= refreshInterval)
+            m_RefreshTimer += Time.deltaTime;
+            if (m_Enabled && m_RefreshTimer > RefreshInterval)
             {
-                var fps = Mathf.FloorToInt(1f / Time.deltaTime);
-                m_MillisPerFrameValue.text = Mathf.RoundToInt(Time.deltaTime * 1000f) + " ms ( " + fps + " fps )";
-                var usg = GC.GetTotalMemory(false) / MB;
-                m_MemoryUsage.text = usg + " MB";
-                m_Time = 0f;
+                var duration = (Time.realtimeSinceStartup - m_LastFrameTime) * 1000f;
+                var fps = 1000f / duration;
+                m_Components[9].text = $"{duration:F0} ms ({fps:F0} fps)";
+                m_RefreshTimer = 0f;
+                var memoryUsage = GC.GetTotalMemory(true) / 1024f / 1024f;
+                m_Components[11].text = $"{memoryUsage:F0} MB";
             }
+
+            m_LastFrameTime = Time.realtimeSinceStartup;
         }
 
-        private void ShowGameInfo(bool show)
+        /// <summary>
+        /// Shows or hides the game information panel.
+        /// </summary>
+        /// <param name="enabled">True to show the panel or false to hide the panel.</param>
+        private void SetEnabled(bool enabled)
         {
-            //enabled = show;
-            foreach (var item in m_Items)
-                item.enabled = show;
+            foreach (var component in m_Components)
+                component.enabled = enabled;
         }
     }
 }
