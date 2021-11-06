@@ -216,6 +216,12 @@ namespace Blox.EnvironmentNS
             return m_Blocks;
         }
 
+        /// <summary>
+        /// Compare this chunk data container with another object. If the other object is also a chunk data container
+        /// and has the same chunk position, both objects are considered as equal.
+        /// </summary>
+        /// <param name="obj">Another object</param>
+        /// <returns>True if both objects are equal, otherwise false</returns>
         public override bool Equals(object obj)
         {
             if (obj is ChunkData cd)
@@ -224,6 +230,10 @@ namespace Blox.EnvironmentNS
             return false;
         }
 
+        /// <summary>
+        /// Returns the chunk positions hash code.
+        /// </summary>
+        /// <returns>Hash code</returns>
         public override int GetHashCode()
         {
             return ChunkPosition.GetHashCode();

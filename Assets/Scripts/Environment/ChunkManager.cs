@@ -92,7 +92,7 @@ namespace Blox.EnvironmentNS
         /// The offset of the top face of the water mesh.
         /// </summary>
         public float waterTopOffset = -0.1f;
-        
+
         /// <summary>
         /// The maintenance interval in secons.
         /// </summary>
@@ -198,13 +198,13 @@ namespace Blox.EnvironmentNS
         /// The maintenance timer.
         /// </summary>
         private float m_MaintenanceTimer;
-        
+
         /// <summary>
         /// The main menu handler.
         /// </summary>
         [Header("Internal Settings")] [SerializeField]
         private MainMenu m_MainMenu;
-        
+
         /// <summary>
         /// Creates or updates the chunk for the given chunk data container.
         /// </summary>
@@ -697,6 +697,9 @@ namespace Blox.EnvironmentNS
             Debug.Log($"{count} chunks destroyed in {duration}ms.");
         }
 
+        /// <summary>
+        /// Handles input events from the user.
+        /// </summary>
         private void HandleInputEvents()
         {
             // Check the escape key to switch to the main menu
@@ -708,12 +711,17 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        private void FillFluidBlocks(Vector3Int globalPosition, HashSet<ChunkData> chunkDataSet, int level = 0)
+        /// <summary>
+        /// Detects all blocks starting from the given global position that are empty and hava neighbour with a fluid
+        /// block. These blocks are also set to the same fluid block type.
+        /// </summary>
+        /// <param name="globalPosition">A global position vector</param>
+        /// <param name="chunkDataSet">Stores all chunk data container which needs to be recreated.</param>
+        private void FillFluidBlocks(Vector3Int globalPosition, HashSet<ChunkData> chunkDataSet)
         {
             var blockType = GetBlockType(globalPosition);
             if (blockType.IsEmpty)
             {
-                //Debug.Log($"[{level}] Empty block at {globalPosition} found.");
                 var faces = new[] { BlockFace.Top, BlockFace.Front, BlockFace.Back, BlockFace.Left, BlockFace.Right };
                 foreach (var face in faces)
                 {
@@ -721,19 +729,18 @@ namespace Blox.EnvironmentNS
                     var neighbourBlockType = GetBlockType(neighbourPosition);
                     if (neighbourBlockType.IsFluid)
                     {
-                        //Debug.Log($"[{level}] Fluid neighbour at {neighbourPosition} found.");
                         var chunkPosition = ChunkPosition.FromGlobalPosition(ChunkSize, globalPosition);
                         var chunkData = this[chunkPosition];
                         var localPosition = chunkPosition.ToLocalPosition(ChunkSize, globalPosition);
                         chunkData.SetBlock(localPosition, neighbourBlockType.ID);
                         chunkDataSet.Add(chunkData);
-                        
+
                         faces = new[]
                             { BlockFace.Bottom, BlockFace.Front, BlockFace.Back, BlockFace.Left, BlockFace.Right };
                         foreach (var f in faces)
                         {
                             neighbourPosition = MathUtilities.Neighbour(globalPosition, f);
-                            FillFluidBlocks(neighbourPosition, chunkDataSet, level + 1);
+                            FillFluidBlocks(neighbourPosition, chunkDataSet);
                         }
                     }
                 }

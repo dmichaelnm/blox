@@ -3,18 +3,39 @@ using UnityEngine;
 
 namespace Blox.EnvironmentNS
 {
+    /// <summary>
+    /// This component manages the minimap.
+    /// </summary>
     public class MiniMapCamera : MonoBehaviour
     {
+        /// <summary>
+        /// The shortcut to toggle the minimap between static and rotating.
+        /// </summary>
         public KeyCode shortcut = KeyCode.F2; 
         
+        /// <summary>
+        /// The minimap camera component.
+        /// </summary>
         [SerializeField] private Camera m_Camera;
 
+        /// <summary>
+        /// The player controller component.
+        /// </summary>
         [SerializeField] private PlayerController m_PlayerController;
 
+        /// <summary>
+        /// The camera transform object.
+        /// </summary>
         private Transform m_CameraTransform;
 
+        /// <summary>
+        /// Flag for toggling between static and rotating minimap.
+        /// </summary>
         private bool m_StaticMinimap = true;
 
+        /// <summary>
+        /// This method is called when this component is created. 
+        /// </summary>
         private void Awake()
         {
             m_CameraTransform = m_Camera.transform;
@@ -22,6 +43,10 @@ namespace Blox.EnvironmentNS
             m_Camera.enabled = false;
         }
 
+        /// <summary>
+        /// This method is called when the position of the player has changed.
+        /// </summary>
+        /// <param name="position">The players position</param>
         private void OnPlayerMoved(PlayerPosition position)
         {
             var camPos = new Vector3(position.CurrentPosition.x, 100, position.CurrentPosition.z);
@@ -43,6 +68,9 @@ namespace Blox.EnvironmentNS
             }
         }
 
+        /// <summary>
+        /// This method is called every frame.
+        /// </summary>
         private void Update()
         {
             if (Input.GetKeyUp(shortcut))
