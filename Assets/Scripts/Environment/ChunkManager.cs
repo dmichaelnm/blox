@@ -230,8 +230,10 @@ namespace Blox.EnvironmentNS
         /// <summary>
         /// Starts the chunk manager.
         /// </summary>
-        public void StartNew()
+        /// <param name="generatorParams">The generator parameters</param>
+        public void StartNew(GeneratorParams generatorParams)
         {
+            GeneratorParams = generatorParams;
             Cursor.lockState = CursorLockMode.Locked;
             Locked = false;
             m_State = State.StartLoadingChunks;
@@ -267,6 +269,9 @@ namespace Blox.EnvironmentNS
         /// </summary>
         private void Awake()
         {
+            // Remove temporary files
+            RemoveTemporaryFiles();
+            
             // Preload the configuration
             Configuration.GetInstance();
 
@@ -706,6 +711,7 @@ namespace Blox.EnvironmentNS
             if (Input.GetKeyUp(KeyCode.Escape))
             {
                 Locked = true;
+                m_MainMenu.gameObject.SetActive(true);
                 m_MainMenu.FadeIn();
                 Cursor.lockState = CursorLockMode.Confined;
             }
@@ -744,6 +750,18 @@ namespace Blox.EnvironmentNS
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Removes all temporary files.
+        /// </summary>
+        private void RemoveTemporaryFiles()
+        {
+            var files = Directory.GetFiles(Game.TemporaryDirectory);
+            foreach (var file in files)
+            {
+                File.Delete(file);                
             }
         }
     }

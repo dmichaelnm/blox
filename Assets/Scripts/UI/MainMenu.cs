@@ -22,6 +22,11 @@ namespace Blox.UINS
         [SerializeField] private Inventory m_Inventory;
 
         /// <summary>
+        /// The "New Game" game object.
+        /// </summary>
+        [SerializeField] private GameObject m_NewGame;
+        
+        /// <summary>
         /// The background image of the main menu.
         /// </summary>
         private Image m_BackgroundImage;
@@ -158,8 +163,8 @@ namespace Blox.UINS
         /// </summary>
         private void NewGame()
         {
-            HideImmediatly();
-            m_ChunkManager.StartNew();
+            m_NewGame.SetActive(true);
+            gameObject.SetActive(false);
         }
     }
 }
