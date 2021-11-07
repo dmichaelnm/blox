@@ -9,6 +9,27 @@ namespace Blox.EnvironmentNS
     public class MiniMapCamera : MonoBehaviour
     {
         /// <summary>
+        /// An enumeration with the possible states of the minimap.
+        /// </summary>
+        internal enum State
+        {
+            /// <summary>
+            /// No minimap is shown
+            /// </summary>
+            None,
+            
+            /// <summary>
+            /// A static minimap is shown
+            /// </summary>
+            Static,
+            
+            /// <summary>
+            /// A rotating minimap is shown
+            /// </summary>
+            Rotating
+        }
+        
+        /// <summary>
         /// The shortcut to toggle the minimap between static and rotating.
         /// </summary>
         public KeyCode shortcut = KeyCode.F2; 
@@ -29,9 +50,9 @@ namespace Blox.EnvironmentNS
         private Transform m_CameraTransform;
 
         /// <summary>
-        /// Flag for toggling between static and rotating minimap.
+        /// State of the minimap.
         /// </summary>
-        private bool m_StaticMinimap = true;
+        private State m_State;
 
         /// <summary>
         /// This method is called when this component is created. 
@@ -41,6 +62,7 @@ namespace Blox.EnvironmentNS
             m_CameraTransform = m_Camera.transform;
             m_PlayerController.OnPlayerMoved += OnPlayerMoved;
             m_Camera.enabled = false;
+            m_State = State.None;
         }
 
         /// <summary>
@@ -49,22 +71,24 @@ namespace Blox.EnvironmentNS
         /// <param name="position">The players position</param>
         private void OnPlayerMoved(PlayerPosition position)
         {
-            var camPos = new Vector3(position.CurrentPosition.x, 100, position.CurrentPosition.z);
-            m_CameraTransform.position = camPos;
-            m_Camera.enabled = true;
+            if (m_State != State.None)
+            {
+                var camPos = new Vector3(position.CurrentPosition.x, 100, position.CurrentPosition.z);
+                m_CameraTransform.position = camPos;
+                m_Camera.enabled = true;
 
-            if (m_StaticMinimap)
-            {
-                m_CameraTransform.rotation = Quaternion.Euler(90f, 0f, 0f);
-            }
-            else
-            {
-                var forward = position.CameraForward;
-                forward.y = 0;
-                forward = forward.normalized;
-                var angle = Vector3.SignedAngle(Vector3.forward, forward, Vector3.up) * -1f;
-                //Debug.Log($"Forward: {forward}, Angle: {angle}");
-                m_CameraTransform.rotation = Quaternion.Euler(90f, 0f, angle);
+                if (m_State == State.Static)
+                {
+                    m_CameraTransform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                }
+                else if (m_State == State.Rotating)
+                {
+                    var forward = position.CameraForward;
+                    forward.y = 0;
+                    forward = forward.normalized;
+                    var angle = Vector3.SignedAngle(Vector3.forward, forward, Vector3.up) * -1f;
+                    m_CameraTransform.rotation = Quaternion.Euler(90f, 0f, angle);
+                }
             }
         }
 
@@ -74,7 +98,20 @@ namespace Blox.EnvironmentNS
         private void Update()
         {
             if (Input.GetKeyUp(shortcut))
-                m_StaticMinimap = !m_StaticMinimap;
+            {
+                if (m_State == State.None)
+                {
+                    m_Camera.enabled = true;
+                    m_State = State.Static;
+                } else if (m_State == State.Static)
+                {
+                    m_State = State.Rotating;
+                } else if (m_State == State.Rotating)
+                {
+                    m_Camera.enabled = false;
+                    m_State = State.None;
+                }
+            }
         }
     }
 }
