@@ -277,9 +277,9 @@ namespace Blox.PlayerNS
                 if (!m_CurrentState.Equals(m_LastState))
                 {
                     var position = new Vector3Int(
-                        (int)m_CurrentState.Position.x,
-                        (int)m_CurrentState.Position.y,
-                        (int)m_CurrentState.Position.z);
+                        MathUtilities.Floor(m_CurrentState.Position.x),
+                        MathUtilities.Floor(m_CurrentState.Position.y),
+                        MathUtilities.Floor(m_CurrentState.Position.z));
                     var chunkPosition = ChunkPosition.FromGlobalPosition(m_ChunkManager.ChunkSize, position);
                     var chunkData = m_ChunkManager[chunkPosition];
                     var localPosition = chunkPosition.ToLocalPosition(m_ChunkManager.ChunkSize, position);

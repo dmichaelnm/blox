@@ -83,6 +83,7 @@ namespace Blox.UINS
         private void OnNothingSelected()
         {
             m_Components[15].text = "-";
+            m_Components[16].text = "-";
         }
 
         /// <summary>
@@ -106,7 +107,9 @@ namespace Blox.UINS
         private void OnBlockSelected(Vector3Int position, BlockType blockType, BlockFace face,
             PlayerSelection.MouseButtonState mousebuttonstate)
         {
+            var p = position;
             m_Components[15].text = $"{blockType.Name} ({face})";
+            m_Components[16].text = $"X={p.x:F2} Y={p.y:F2} Z={p.z:F2}";
         }
 
         /// <summary>
