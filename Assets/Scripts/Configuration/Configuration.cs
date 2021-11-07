@@ -39,6 +39,11 @@ namespace Blox.ConfigurationNS
         private List<BlockType> m_BlockTypes;
 
         /// <summary>
+        /// List of loaded terrain generator presets.
+        /// </summary>
+        private List<TerrainGeneratorPreset> m_TerrinaGeneratorPresets;
+        
+        /// <summary>
         /// Private constructor.
         /// </summary>
         private Configuration()
@@ -48,10 +53,12 @@ namespace Blox.ConfigurationNS
 
             LoadTextureTypes();
             LoadBlockTypes();
+            LoadPresets();
 
             Debug.Log($"Configuration loaded : {performance}");
             Debug.Log($"  - {m_TextureTypes.Count} texture types");
             Debug.Log($"  - {m_BlockTypes.Count} block types");
+            Debug.Log($"  - {m_TerrinaGeneratorPresets.Count} presets");
         }
 
         /// <summary>
@@ -74,6 +81,15 @@ namespace Blox.ConfigurationNS
         {
             Assert.IsTrue(id >= 0 && id < m_BlockTypes.Count);
             return m_BlockTypes[id];
+        }
+
+        /// <summary>
+        /// Returns an array with the loaded terrain generator presets.
+        /// </summary>
+        /// <returns>Array of presets</returns>
+        public TerrainGeneratorPreset[] GetTerrainGeneratorPresets()
+        {
+            return m_TerrinaGeneratorPresets.ToArray();
         }
         
         /// <summary>
@@ -117,6 +133,27 @@ namespace Blox.ConfigurationNS
                 });
             }
             m_BlockTypes.Sort((bt1, bt2) => bt1.ID - bt2.ID);
+        }
+
+        /// <summary>
+        /// Loads the presets defines in the configuration file.
+        /// </summary>
+        private void LoadPresets()
+        {
+            m_TerrinaGeneratorPresets = new List<TerrainGeneratorPreset>();
+            var asset = Resources.Load<TextAsset>("Configuration/presets");
+            Assert.IsNotNull(asset);
+            using (var reader = new JsonTextReader(new StringReader(asset.text)))
+            {
+                reader.NextTokenIsStartObject();
+                reader.NextPropertyNameIs("terrain-generator");
+                reader.IterateOverObjectArray(() =>
+                {
+                    // ReSharper disable once AccessToDisposedClosure
+                    var preset = new TerrainGeneratorPreset(reader);
+                    m_TerrinaGeneratorPresets.Add(preset);
+                });
+            }
         }
     }
 }

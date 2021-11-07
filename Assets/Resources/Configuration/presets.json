@@ -1,0 +1,98 @@
+﻿{
+  "terrain-generator": [
+    {
+      "name": "Standard",
+      "properties": {
+        "baseline": 32,
+        "terrain": {
+          "scale": 128,
+          "octaves": 3,
+          "frequency": 3,
+          "redistribution": 3,
+          "redistributionScale": 1,
+          "amplitude": 30
+        },
+        "water": {
+          "scale": 512,
+          "octaves": 1,
+          "frequency": 1,
+          "redistribution": 1,
+          "redistributionScale": 1,
+          "amplitude": 10,
+          "waterOffset": -1
+        },
+        "stone": {
+          "scale": 64,
+          "octaves": 4,
+          "frequency": 4,
+          "redistribution": 4,
+          "redistributionScale": 1,
+          "amplitude": 1,
+          "stoneLevel": 20,
+          "stoneScattering": 5,
+          "snowLevel": 10,
+          "snowScattering": 5
+        },
+        "tree": {
+          "maxTreeCount": 200,
+          "scale": 64,
+          "octaves": 2,
+          "frequency": 2,
+          "redistribution": 2,
+          "redistributionScale": 1,
+          "amplitude": 1,
+          "threshold": 0.5,
+          "minHeight": 4,
+          "maxHeight": 7
+        }
+      }
+    },
+    {
+      "name": "Flat",
+      "properties": {
+        "baseline": 32,
+        "terrain": {
+          "scale": 128,
+          "octaves": 3,
+          "frequency": 3,
+          "redistribution": 3,
+          "redistributionScale": 1,
+          "amplitude": 10
+        },
+        "water": {
+          "scale": 512,
+          "octaves": 1,
+          "frequency": 1,
+          "redistribution": 1,
+          "redistributionScale": 1,
+          "amplitude": 10,
+          "waterOffset": -1
+        },
+        "stone": {
+          "scale": 64,
+          "octaves": 4,
+          "frequency": 4,
+          "redistribution": 4,
+          "redistributionScale": 1,
+          "amplitude": 1,
+          "stoneLevel": 20,
+          "stoneScattering": 5,
+          "snowLevel": 10,
+          "snowScattering": 5
+        },
+        "tree": {
+          "maxTreeCount": 200,
+          "scale": 64,
+          "octaves": 2,
+          "frequency": 2,
+          "redistribution": 2,
+          "redistributionScale": 1,
+          "amplitude": 1,
+          "threshold": 0.5,
+          "minHeight": 4,
+          "maxHeight": 7
+        }
+      }
+    }
+  ]
+}
