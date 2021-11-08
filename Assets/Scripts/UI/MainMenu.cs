@@ -1,170 +1,139 @@
 ﻿using System;
+using System.IO;
+using System.IO.Compression;
 using Blox.EnvironmentNS;
+using Blox.GameNS;
+using Blox.PlayerNS;
 using Blox.UtilitiesNS;
+using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Blox.UINS
 {
-    /// <summary>
-    /// This component manages the main menu.
-    /// </summary>
-    public class MainMenu : FadeBehaviour, IColorProvider, IEnableable
+    public class MainMenu : FadeBehaviour, MainMenuButton.IHandler
     {
-        /// <summary>
-        /// The chunk manager component.
-        /// </summary>
         [SerializeField] private ChunkManager m_ChunkManager;
-
-        /// <summary>
-        /// The inventory component.
-        /// </summary>
-        [SerializeField] private Inventory m_Inventory;
-
-        /// <summary>
-        /// The "New Game" game object.
-        /// </summary>
+        [SerializeField] private GameObject m_Inventory;
         [SerializeField] private GameObject m_NewGame;
-        
-        /// <summary>
-        /// The background image of the main menu.
-        /// </summary>
-        private Image m_BackgroundImage;
+        [SerializeField] private GameObject m_ProceedButton;
+        [SerializeField] private GameObject m_RotationCamera;
+        [SerializeField] private GameObject m_PlayerController;
+        [SerializeField] private GameObject m_LoadScreen;
 
-        /// <summary>
-        /// The title image of the main menu.
-        /// </summary>
-        private Image m_TitleImage;
-
-        /// <summary>
-        /// An array with all buttons of the main menu
-        /// </summary>
-        private MainMenuButton[] m_Buttons;
-
-        /// <summary>
-        /// This method is called when this component is created.
-        /// </summary>
-        private void Awake()
+        public void SwitchToMainMenu()
         {
-            m_BackgroundImage = GetComponent<Image>();
-            m_TitleImage = gameObject.GetChild("Title").GetComponent<Image>();
-            m_Buttons = GetComponentsInChildren<MainMenuButton>();
+            m_Inventory.SetActive(false);
+            m_ProceedButton.SetActive(true);
+            m_PlayerController.SetActive(false);
+            m_RotationCamera.SetActive(true);
+            FadeIn();
         }
 
-        /// <summary>
-        /// This method is called when a main menu button was clicked.
-        /// </summary>
-        /// <param name="name">The name of the button</param>
-        public void PerformButtonClick(string name)
+        public void SwitchToGame()
         {
-            if (name.Equals("QuitGame"))
-                Application.Quit();
-            else if (name.Equals("Proceed"))
+            FadeOut(state =>
             {
-                FadeOut();
                 m_ChunkManager.Unlock();
-            }
-            else if (name.Equals("NewGame"))
-                NewGame();
-        }
-
-        /// <summary>
-        /// Shows the main menu immediatly.
-        /// </summary>
-        public void ShowInitialMainMenu()
-        {
-            m_BackgroundImage.enabled = true;
-            Iterate(comp =>
-            {
-                if (comp is IEnableable en)
-                    en.SetEnabled(true);
-            });
-            m_Buttons[0].SetEnabled(false);
-        }
-
-        /// <summary>
-        /// Hides the main menu immediatly
-        /// </summary>
-        public void HideImmediatly()
-        {
-            m_BackgroundImage.enabled = false;
-            Iterate(comp =>
-            {
-                if (comp is IEnableable en)
-                    en.SetEnabled(false);
+                m_Inventory.SetActive(true);
+                m_PlayerController.SetActive(true);
+                m_RotationCamera.SetActive(false);
+                gameObject.SetActive(false);
             });
         }
         
-        protected override void StartFade(State state)
+        public void OnClicked(MainMenuButton src)
         {
-            m_BackgroundImage.enabled = false;
-            m_Buttons[0].SetEnabled(true);
-            m_Inventory.SetEnabled(state != State.FadeIn);
-
-            Iterate(comp =>
-            {
-                if (comp is IColorProvider cp)
-                    cp.SetColor(state == State.FadeIn ? Color.clear : Color.white);
-                if (comp is IEnableable en)
-                    en.SetEnabled(true);
-            });
+            if (src.Name.Equals("QuitGame"))
+                Application.Quit();
+            else if (src.Name.Equals("Proceed"))
+                SwitchToGame();
+            else if (src.Name.Equals("NewGame"))
+                NewGame();
+            else if (src.Name.Equals("SaveGame"))
+                SaveGame();
+            else if (src.Name.Equals("LoadGame"))
+                SwitchToLoadGameScreen();
         }
-
-        protected override void Fading(State state, float value)
-        {
-            Iterate(comp =>
-            {
-                if (comp is IColorProvider cp)
-                {
-                    cp.SetColor(new Color(1f, 1f, 1f, value));
-                }
-            });
-        }
-
-        protected override void EndFade(State state)
-        {
-            Iterate(comp =>
-            {
-                if (comp is IColorProvider cp)
-                    cp.SetColor(state == State.FadeIn ? Color.white : Color.clear);
-                if (comp is IEnableable en)
-                    en.SetEnabled(state == State.FadeIn);
-            });
-        }
-
-        /// <summary>
-        /// Internal method to iterate over all elements of the main menu.
-        /// </summary>
-        /// <param name="comp"></param>
-        private void Iterate(Action<object> comp)
-        {
-            comp.Invoke(this);
-            foreach (var button in m_Buttons)
-                comp.Invoke(button);
-        }
-
-        public Color GetColor()
-        {
-            return m_TitleImage.color;
-        }
-
-        public void SetColor(Color color)
-        {
-            m_TitleImage.color = color;
-        }
-
-        public void SetEnabled(bool enabled)
-        {
-            m_TitleImage.enabled = enabled;
-        }
-
-        /// <summary>
-        /// Show the new game screen.
-        /// </summary>
+        
         private void NewGame()
         {
             m_NewGame.SetActive(true);
             gameObject.SetActive(false);
         }
-    }
+
+        public void SaveGame()
+        {
+            var folder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            var srcFolder = folder + "/My Games/Blox/" + Game.CurrentName;
+            var dstFile = srcFolder + ".zip";
+            if (!Directory.Exists(srcFolder))
+                Directory.CreateDirectory(srcFolder);
+            
+            // Copy all cache files
+            var files = Directory.GetFiles(Game.TemporaryDirectory);
+            foreach (var file in files)
+            {
+                var target = srcFolder + "/" + Path.GetFileName(file);
+                File.Copy(file, target);
+            }
+            
+            // Save all chunks in cache
+            m_ChunkManager.SaveCacheTo(srcFolder);
+
+            using (var w = new JsonTextWriter(new StreamWriter(srcFolder + "/properties.json")))
+            {
+                var playerController = m_PlayerController.GetComponent<PlayerController>();
+                var inventory = m_Inventory.GetComponent<Inventory>();
+                
+                w.WriteStartObject();
+                w.WritePropertyName("player");
+                w.WriteStartObject();
+                w.WriteProperty("positionX", playerController.PlayerPosition.CurrentPosition.x);
+                w.WriteProperty("positionY", playerController.PlayerPosition.CurrentPosition.y);
+                w.WriteProperty("positionZ", playerController.PlayerPosition.CurrentPosition.z);
+                w.WriteProperty("forwardX", playerController.PlayerPosition.CameraForward.x);
+                w.WriteProperty("forwardY", playerController.PlayerPosition.CameraForward.y);
+                w.WriteProperty("forwardZ", playerController.PlayerPosition.CameraForward.z);
+                w.WriteEndObject();
+                w.WritePropertyName("inventory");
+                w.WriteStartObject();
+                w.WriteProperty("slotCount", inventory.SlotCount);
+                for (var i = 0; i < inventory.SlotCount; i++)
+                {
+                    var slot = inventory[i];
+                    w.WritePropertyName("slot" + i);
+                    w.WriteStartObject();
+                    w.WriteProperty("blocktype", slot.BlockTypeId);
+                    w.WriteProperty("count", slot.Count);
+                    w.WriteEndObject();
+                }
+                w.WriteEndObject();
+                w.WriteEndObject();
+            }
+            
+            File.Delete(dstFile);
+            ZipFile.CreateFromDirectory(srcFolder, dstFile);
+            Array.ForEach(Directory.GetFiles(srcFolder), File.Delete);
+            Directory.Delete(srcFolder);
+            
+            SwitchToGame();
+        }
+
+        public void SwitchToLoadGameScreen()
+        {
+            FadeOut(state =>
+            {
+                m_LoadScreen.SetActive(true);
+                var comp = m_LoadScreen.GetComponent<LoadGame>();
+                comp.ShowSaveGames();
+                comp.FadeIn();
+                gameObject.SetActive(false);
+            });           
+        }
+        
+        protected override void OnAwake()
+        {
+            m_ProceedButton.SetActive(false);
+        }
+   }
 }

@@ -51,6 +51,17 @@ namespace Blox.UtilitiesNS
         }
 
         /// <summary>
+        /// Iterates over all child objects of the game object and calls an action method for every entry.
+        /// </summary>
+        /// <param name="obj">The game object</param>
+        /// <param name="action">The action method</param>
+        public static void Iterate(this GameObject obj, Action<GameObject> action)
+        {
+            for (var i = 0; i < obj.transform.childCount; i++)
+                action.Invoke(obj.transform.GetChild(i).gameObject);
+        }
+        
+        /// <summary>
         /// Iterates over all child transforms of this transform from the last to the first child and calls for evere
         /// child the action method.
         /// </summary>

@@ -39,6 +39,11 @@ namespace Blox.ActionsNS
             /// The current mouse button state.
             /// </summary>
             public PlayerSelection.MouseButtonState MouseButtonState;
+
+            public override string ToString()
+            {
+                return $"State: mouseButtonState: {MouseButtonState}";
+            }
         }
 
         /// <summary>

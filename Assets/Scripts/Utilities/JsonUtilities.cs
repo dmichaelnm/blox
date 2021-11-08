@@ -407,5 +407,11 @@ namespace Blox.UtilitiesNS
                 action.Invoke(propertyName, token, value);
             }
         }
+
+        public static void WriteProperty(this JsonTextWriter writer, string name, object value)
+        {
+            writer.WritePropertyName(name);
+            writer.WriteValue(value);
+        }
     }
 }

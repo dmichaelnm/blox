@@ -84,6 +84,16 @@ namespace Blox.ConfigurationNS
         }
 
         /// <summary>
+        /// Returns a specific preset with the given name. 
+        /// </summary>
+        /// <param name="name">The name of the preset.</param>
+        /// <returns>The preset for the name (or a default preset if the name is unknown)</returns>
+        public TerrainGeneratorPreset GetTerrainGeneratorPreset([NotNull] string name)
+        {
+            return m_TerrinaGeneratorPresets.Find(preset => preset.Name.Equals(name));
+        }
+        
+        /// <summary>
         /// Returns an array with the loaded terrain generator presets.
         /// </summary>
         /// <returns>Array of presets</returns>

@@ -137,6 +137,8 @@ namespace Blox.PlayerNS
         /// </summary>
         [SerializeField] private ChunkManager m_ChunkManager;
 
+        [SerializeField] private EventSystem m_EventSystem;
+        
         /// <summary>
         /// The mesh renderer of the selection block.
         /// </summary>
@@ -183,7 +185,7 @@ namespace Blox.PlayerNS
                 (Input.GetMouseButtonUp(2) ? MouseButtonState.MiddleButtonUp : MouseButtonState.None);
 
             // If the mouse hits a component in UI canvas then ignore it here
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            if (m_EventSystem.IsPointerOverGameObject())
                 m_CurrentState.MouseButtonState = MouseButtonState.None;
 
             var show = false;

@@ -16,104 +16,43 @@ using UnityEngine;
 
 namespace Blox.EnvironmentNS
 {
-    /// <summary>
-    /// This component manages the chunk handling in the game. Game objects using this component should be named
-    /// "Chunk Manager".
-    /// </summary>
     public class ChunkManager : MonoBehaviour
     {
-        /// <summary>
-        /// Internal enumaration of states used by the chunk manager.
-        /// </summary>
         internal enum State
         {
-            /// <summary>
-            /// Does nothing.
-            /// </summary>
             DoNothing,
-
-            /// <summary>
-            /// Starts all jobs for loading or generating chunk data 
-            /// </summary>
             StartLoadingChunks,
-
-            /// <summary>
-            /// Receives the loaded chunk data and stores it in the cache
-            /// </summary>
             StoreLoadedChunks,
-
-            /// <summary>
-            /// Finds the chunks that needs to be created
-            /// </summary>
             EnqueueNewChunks,
-
-            /// <summary>
-            /// Creates new chunk objects
-            /// </summary>
             CreatingNewChunks,
-
-            /// <summary>
-            /// Idle (input events are processed and unused chunks and chunk data containers are cleaned up)
-            /// </summary>
             Idle
         }
 
-        /// <summary>
-        /// A flag that indicates that the chunk manager is full initialized and game ready.
-        /// </summary>
-        public bool Initialized { get; private set; }
-
-        /// <summary>
-        /// A flag for locking the chunk manager
-        /// </summary>
-        public bool Locked { get; private set; }
-
-        /// <summary>
-        /// Returns the instance of this chunk manager.
-        /// </summary>
-        /// <returns>Chunk manager</returns>
+        [CanBeNull]
         public static ChunkManager GetInstance(string name = "Chunk Manager")
         {
             return GameObject.Find(name)?.GetComponent<ChunkManager>();
         }
 
+        public bool Initialized { get; private set; }
+        public bool Locked { get; private set; }
 
-        /// <summary>
-        /// The size of a chunk.
-        /// </summary>
         [Header("Sizing Properties")] public ChunkSize ChunkSize;
-
-        /// <summary>
-        /// The number of visible chunks from starting from the current chunk.
-        /// </summary>
         public int visibleChunks = 2;
-
-        /// <summary>
-        /// The offset of the top face of the water mesh.
-        /// </summary>
         public float waterTopOffset = -0.1f;
 
-        /// <summary>
-        /// The maintenance interval in secons.
-        /// </summary>
         [Header("Maintenance Properties")] public float maintenanceInterval = 60f;
-
-        /// <summary>
-        /// The lifetime of a inactive chunk data before it will be purged from the cache.
-        /// </summary>
         public float chunkDataLifetime = 120f;
 
-        /// <summary>
-        /// Generator parameter used for world generation.
-        /// </summary>
         [Header("Generator Properties")] public GeneratorParams GeneratorParams;
 
-        /// <summary>
-        /// Returns a chunk data container from the internal cache for the given coordinates of a chunks position. If
-        /// the chunk is not in the cache, null is returned. 
-        /// </summary>
-        /// <param name="x">The X coordinate of a chunks position</param>
-        /// <param name="z">The Z coordinate of a chunks position</param>
+        [Header("Shortcuts")]
+        public KeyCode switchToMainMenuShortcut = KeyCode.Escape;
+        public KeyCode saveShortcut = KeyCode.F5;
+        
+        [Header("Internal Settings")] [SerializeField]
+        private MainMenu m_MainMenu;
+
         public ChunkData this[int x, int z]
         {
             get
@@ -123,36 +62,15 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Returns a chunk data container from the internal cache for the given chunks position. If
-        /// the chunk is not in the cache, null is returned. 
-        /// </summary>
-        /// <param name="chunkPosition">A chunks position</param>
         public ChunkData this[ChunkPosition chunkPosition] => this[chunkPosition.X, chunkPosition.Z];
 
-        /// <summary>
-        /// This event is triggered when the chunk manager is initialized.
-        /// </summary>
         public event Events.ComponentEvent<ChunkManager> OnChunkManagerInitialized;
-
-        /// <summary>
-        /// This event is triggered before the chunk manager will be destroyed.
-        /// </summary>
         public event Events.ComponentEvent<ChunkManager> OnChunkManagerDestroyed;
+        public event Events.ComponentEvent<ChunkManager> OnChunkManagerResetted;
 
-        /// <summary>
-        /// Internal storage of all loaded chunk data container.
-        /// </summary>
         private Dictionary<string, ChunkData> m_ChunkDataCache;
-
-        /// <summary>
-        /// The current chunk position of the player.
-        /// </summary>
         private ChunkPosition m_CurrentChunkPosition;
 
-        /// <summary>
-        /// The state of this chunk manager.
-        /// </summary>
         private State m_State
         {
             get => m_StateValue;
@@ -168,48 +86,23 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Internal state value for the property "m_State".
-        /// </summary>
         private State m_StateValue;
-
-        /// <summary>
-        /// The performance info struct.
-        /// </summary>
         private PerfomanceInfo m_PerfomanceInfo;
-
-
-        /// <summary>
-        /// The queue that holds all active loading or generating chunk data jobs.
-        /// </summary>
         private Queue<JobData<IChunkDataProvider>> m_LoadChunkJobQueue;
-
-        /// <summary>
-        /// The queue that holds all active saving chunk data jobs.
-        /// </summary>
         private Queue<JobData<SaveChunkJob>> m_SaveChunkJobQueue;
-
-        /// <summary>
-        /// The queue with the chunk data container for which chunk objects have to be created.
-        /// </summary>
         private Queue<ChunkData> m_NewChunksQueue;
-
-        /// <summary>
-        /// The maintenance timer.
-        /// </summary>
         private float m_MaintenanceTimer;
 
-        /// <summary>
-        /// The main menu handler.
-        /// </summary>
-        [Header("Internal Settings")] [SerializeField]
-        private MainMenu m_MainMenu;
+        public void StartNewGame(GeneratorParams generatorParams)
+        {
+            ResetGame();
+            GeneratorParams = generatorParams;
+            m_State = State.StartLoadingChunks;
+            m_CurrentChunkPosition = ChunkPosition.Zero;
+            Cursor.lockState = CursorLockMode.Locked;
+            Initialized = false;
+        }
 
-        /// <summary>
-        /// Creates or updates the chunk for the given chunk data container.
-        /// </summary>
-        /// <param name="chunkData">A chunk data container</param>
-        /// <param name="async">When true, the process runs in a coroutine</param>
         public void RecreateChunk([NotNull] ChunkData chunkData, bool async = false)
         {
             if (async)
@@ -218,30 +111,12 @@ namespace Blox.EnvironmentNS
                 CreateOrUpdateChunkObjectSync(chunkData);
         }
 
-        /// <summary>
-        /// Unlocks the chunk manager.
-        /// </summary>
         public void Unlock()
         {
             Locked = false;
             Cursor.lockState = CursorLockMode.Locked;
         }
 
-        /// <summary>
-        /// Starts the chunk manager.
-        /// </summary>
-        /// <param name="generatorParams">The generator parameters</param>
-        public void StartNew(GeneratorParams generatorParams)
-        {
-            GeneratorParams = generatorParams;
-            Cursor.lockState = CursorLockMode.Locked;
-            Locked = false;
-            m_State = State.StartLoadingChunks;
-        }
-
-        /// <summary>
-        /// Starts to fill empty blocks with fluids
-        /// </summary>
         public void StartFillingFluidBlocks(Vector3Int globalPosition)
         {
             var chunkDataSet = new HashSet<ChunkData>();
@@ -250,11 +125,6 @@ namespace Blox.EnvironmentNS
                 RecreateChunk(chunkData);
         }
 
-        /// <summary>
-        /// Returns the block type from the global position.
-        /// </summary>
-        /// <param name="globalPosition">Global position vector</param>
-        /// <returns>The block type at the position</returns>
         public BlockType GetBlockType(Vector3Int globalPosition)
         {
             var chunkPosition = ChunkPosition.FromGlobalPosition(ChunkSize, globalPosition);
@@ -264,42 +134,43 @@ namespace Blox.EnvironmentNS
             return blockType;
         }
 
-        /// <summary>
-        /// Initialization of the chunk manager. 
-        /// </summary>
+        public void SaveCacheTo(string path)
+        {
+            foreach (var chunkData in m_ChunkDataCache.Values.ToArray())
+            {
+                var job = new SaveChunkJob();
+                job.Initialize(chunkData, path + "/" + chunkData.ChunkPosition.ToCacheFilename());
+                job.Execute();
+                job.Dispose();
+            }
+        }
+
         private void Awake()
         {
-            // Remove temporary files
-            RemoveTemporaryFiles();
-            
-            // Preload the configuration
-            Configuration.GetInstance();
-
-            // Show the main menu
-            m_MainMenu.ShowInitialMainMenu();
+            // Initialize chunk manager for showing as main menu background
+            var config = Configuration.GetInstance();
+            GeneratorParams = config.GetTerrainGeneratorPreset("Standard").GeneratorParams;
+            GeneratorParams.randomSeed = new System.Random().Next();
 
             m_ChunkDataCache = new Dictionary<string, ChunkData>();
-            m_State = State.DoNothing;
+            m_State = State.StartLoadingChunks;
             m_CurrentChunkPosition = ChunkPosition.Zero;
             m_LoadChunkJobQueue = new Queue<JobData<IChunkDataProvider>>();
             m_SaveChunkJobQueue = new Queue<JobData<SaveChunkJob>>();
             m_NewChunksQueue = new Queue<ChunkData>();
 
+            // Removes only old temporary files
+            ResetGame();
+
             m_PerfomanceInfo = new PerfomanceInfo();
             m_PerfomanceInfo.StartMeasure();
         }
 
-        /// <summary>
-        /// This method is called before the chunk manager is destroyed.
-        /// </summary>
         private void OnDestroy()
         {
             OnChunkManagerDestroyed?.Invoke(this);
         }
 
-        /// <summary>
-        /// Update method is called per frame.
-        /// </summary>
         private void Update()
         {
             if (!Locked)
@@ -323,9 +194,6 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Starts all chunk loading and generating jobs.
-        /// </summary>
         private void StartLoadingChunks()
         {
             // Iterate over all visible plus one chunk positions
@@ -359,9 +227,6 @@ namespace Blox.EnvironmentNS
             });
         }
 
-        /// <summary>
-        /// Reads the results from next completed loading or generating job and store it in the cache.
-        /// </summary>
         private void StoreLoadedChunks()
         {
             // If no more jobs left in the queue switch to the next state
@@ -391,9 +256,6 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Detects the chunks that needs to be created and enqueues them.
-        /// </summary>
         private void EnqueueNewChunks()
         {
             ChunkPosition.Iterate(m_CurrentChunkPosition, visibleChunks, chunkPosition =>
@@ -408,9 +270,6 @@ namespace Blox.EnvironmentNS
             m_State = State.CreatingNewChunks;
         }
 
-        /// <summary>
-        /// Takes a chunk data container from the queue and starts to create the chunk object.
-        /// </summary>
         private void CreatingNewChunks()
         {
             if (!Initialized)
@@ -423,7 +282,8 @@ namespace Blox.EnvironmentNS
                     Initialized = true;
                     OnChunkManagerInitialized?.Invoke(this);
                     var playerController = PlayerController.GetInstance();
-                    playerController.OnPlayerMoved += OnPlayerMoved;
+                    if (playerController != null)
+                        playerController.OnPlayerMoved += OnPlayerMoved;
                 }
             }
 
@@ -440,12 +300,6 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Create the mesh data for the chunk data container and attach it to the corresponding chunk objekt.
-        /// The chunk objekt will be created, if not exists yet. This method is called as a coroutine.
-        /// </summary>
-        /// <param name="chunkData">Chunk data container</param>
-        /// <returns>An enumerator</returns>
         private IEnumerator CreateOrUpdateChunkObjectAsync(ChunkData chunkData)
         {
             // Contains for every used texture type
@@ -486,11 +340,6 @@ namespace Blox.EnvironmentNS
             CreateChunk(chunkData.ChunkPosition, meshes);
         }
 
-        /// <summary>
-        /// Create the mesh data for the chunk data container and attach it to the corresponding chunk objekt.
-        /// The chunk objekt will be created, if not exists yet.
-        /// </summary>
-        /// <param name="chunkData">Chunk data container</param>
         private void CreateOrUpdateChunkObjectSync(ChunkData chunkData)
         {
             // Contains for every used texture type
@@ -530,18 +379,6 @@ namespace Blox.EnvironmentNS
             CreateChunk(chunkData.ChunkPosition, meshes);
         }
 
-        /// <summary>
-        /// Add the the vertices, triangles and UV coordinates to the meshes cache.
-        /// </summary>
-        /// <param name="meshes">Cache for the meshes</param>
-        /// <param name="x">Local X coordinate</param>
-        /// <param name="y">Local Y coordinate</param>
-        /// <param name="z">Local Z coordinate</param>
-        /// <param name="blockType">Block type</param>
-        /// <param name="face">The face of the block</param>
-        /// <param name="flags">A set of flags</param>
-        /// <param name="layerMask">A layer mask</param>
-        /// <param name="topOffset">The offset of the top face</param>
         private void UpdateChunkMesh(Dictionary<TextureType, ChunkMesh> meshes, int x, int y, int z,
             BlockType blockType, BlockFace face, ChunkMesh.Flags flags, LayerMask layerMask,
             float topOffset = 0f)
@@ -569,11 +406,6 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Creates or updates the chunk object and all child objects for the meshes.
-        /// </summary>
-        /// <param name="chunkPosition">The position of the chunk</param>
-        /// <param name="meshes">The mesh data containers</param>
         private void CreateChunk(ChunkPosition chunkPosition, Dictionary<TextureType, ChunkMesh> meshes)
         {
             // Creates the chunk object
@@ -589,10 +421,6 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Event method that is called every frame with the actual player position.
-        /// </summary>
-        /// <param name="position">The position of the player</param>
         private void OnPlayerMoved(PlayerPosition position)
         {
             if (position.HasChunkChanged)
@@ -605,9 +433,6 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Running the maintenance on the chunk data cache.
-        /// </summary>
         private void Maintainance()
         {
             if (Initialized)
@@ -669,9 +494,6 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Destroys chunks that are no longer visible.
-        /// </summary>
         private void DestroyChunks()
         {
             var startTime = Time.realtimeSinceStartup;
@@ -702,27 +524,21 @@ namespace Blox.EnvironmentNS
             Debug.Log($"{count} chunks destroyed in {duration}ms.");
         }
 
-        /// <summary>
-        /// Handles input events from the user.
-        /// </summary>
         private void HandleInputEvents()
         {
             // Check the escape key to switch to the main menu
-            if (Input.GetKeyUp(KeyCode.Escape))
+            if (Input.GetKeyUp(switchToMainMenuShortcut))
             {
                 Locked = true;
                 m_MainMenu.gameObject.SetActive(true);
-                m_MainMenu.FadeIn();
+                m_MainMenu.SwitchToMainMenu();
                 Cursor.lockState = CursorLockMode.Confined;
+            } else if (Input.GetKeyUp(saveShortcut))
+            {
+                m_MainMenu.SaveGame();
             }
         }
 
-        /// <summary>
-        /// Detects all blocks starting from the given global position that are empty and hava neighbour with a fluid
-        /// block. These blocks are also set to the same fluid block type.
-        /// </summary>
-        /// <param name="globalPosition">A global position vector</param>
-        /// <param name="chunkDataSet">Stores all chunk data container which needs to be recreated.</param>
         private void FillFluidBlocks(Vector3Int globalPosition, HashSet<ChunkData> chunkDataSet)
         {
             var blockType = GetBlockType(globalPosition);
@@ -753,16 +569,22 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        /// <summary>
-        /// Removes all temporary files.
-        /// </summary>
-        private void RemoveTemporaryFiles()
+        private void ResetGame()
         {
+            // Clear the cache
+            m_ChunkDataCache.Clear();
+
+            // Remove all child objcts
+            transform.IterateInverse(t => Destroy(t.gameObject));
+
+            // Remove all temporary files
             var files = Directory.GetFiles(Game.TemporaryDirectory);
             foreach (var file in files)
             {
-                File.Delete(file);                
+                File.Delete(file);
             }
+
+            OnChunkManagerResetted?.Invoke(this);
         }
     }
 }

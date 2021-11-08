@@ -3,14 +3,8 @@ using UnityEngine;
 
 namespace Blox.GameNS
 {
-    /// <summary>
-    /// Central game class that holds the current game state information.
-    /// </summary>
     public static class Game
     {
-        /// <summary>
-        /// The path to the temporary directory of the game.
-        /// </summary>
         public static string TemporaryDirectory
         {
             get
@@ -23,5 +17,7 @@ namespace Blox.GameNS
                 return path;
             }
         }
+
+        public static string CurrentName;
     }
 }

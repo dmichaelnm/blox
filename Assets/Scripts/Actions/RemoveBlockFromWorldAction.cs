@@ -53,7 +53,6 @@ namespace Blox.ActionsNS
             var chunkData = m_ChunkManager[chunkPosition];
             var localPosition = chunkPosition.ToLocalPosition(m_ChunkManager.ChunkSize, position);
             
-            // TODO check the surrounding blocks for fluid
             chunkData.SetBlock(localPosition, (int)BlockType.IDs.Air);
 
             // Refresh the chunk

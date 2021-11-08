@@ -14,6 +14,8 @@ namespace Blox.UINS
         /// </summary>
         public int SlotCount = 10;
 
+        public InventorySlot this[int index] => m_Slots[index];
+        
         /// <summary>
         /// The prefab for an inventory slot.
         /// </summary>

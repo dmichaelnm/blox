@@ -1,96 +1,61 @@
 ﻿using Blox.ConfigurationNS;
 using Blox.EnvironmentNS;
+using Blox.GameNS;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = System.Random;
 
 namespace Blox.UINS
 {
-    /// <summary>
-    /// This component manages the new game UI.
-    /// </summary>
-    public class NewGame : MonoBehaviour
+    public class NewGame : FadeBehaviour, MainMenuButton.IHandler
     {
-        /// <summary>
-        /// The chunk manager component.
-        /// </summary>
         [SerializeField] private ChunkManager m_ChunkManager;
-
-        /// <summary>
-        /// The game object containing the "Main Menu".
-        /// </summary>
         [SerializeField] private GameObject m_MainMenu;
-
-        /// <summary>
-        /// The world name input field.
-        /// </summary>
         [SerializeField] private InputField m_WorldName;
-
-        /// <summary>
-        /// The landscape button.
-        /// </summary>
         [SerializeField] private Button m_Landscape;
-
-        /// <summary>
-        /// The random seed input field
-        /// </summary>
         [SerializeField] private InputField m_RandomSeed;
-        
-        /// <summary>
-        /// The array with the landscape presets.
-        /// </summary>
-        private TerrainGeneratorPreset[] m_Presets;
+        [SerializeField] private LoadingScreen m_LoadingScreen;
+        [SerializeField] private GameObject m_Inventory;
 
-        /// <summary>
-        /// The current preset index.
-        /// </summary>
+        private TerrainGeneratorPreset[] m_Presets;
         private int m_PresetIndex;
-        
-        /// <summary>
-        /// This method is called when this component is created.
-        /// </summary>
-        private void Awake()
+
+        protected override void OnAwake()
         {
             m_WorldName.text = "Neue Welt";
-            
+
             var config = Configuration.GetInstance();
             m_Presets = config.GetTerrainGeneratorPresets();
-            
+
             var landscapeText = m_Landscape.GetComponentInChildren<Text>();
             landscapeText.text = m_Presets[0].Name;
 
-            m_RandomSeed.text = new System.Random().Next().ToString();
+            m_RandomSeed.text = new Random().Next().ToString();
         }
 
-        /// <summary>
-        /// This method is called when the "back" button is clicked.
-        /// </summary>
-        public void Back()
+        public void OnClicked(MainMenuButton src)
         {
-            m_MainMenu.SetActive(true);
-            gameObject.SetActive(false);
+            if (src.Name.Equals("StartGame"))
+                StartGame();
+            else if (src.Name.Equals("Back"))
+                Back();
         }
 
-        /// <summary>
-        /// Changes the preset choice for the button to the next preset or to the first preset.
-        /// </summary>
         public void SwitchPreset()
         {
             m_PresetIndex++;
             if (m_PresetIndex == m_Presets.Length)
                 m_PresetIndex = 0;
-            
+
             var landscapeText = m_Landscape.GetComponentInChildren<Text>();
             landscapeText.text = m_Presets[m_PresetIndex].Name;
         }
 
-        /// <summary>
-        /// Starts the game.
-        /// </summary>
-        public void StartGame()
+        private void StartGame()
         {
             int.TryParse(m_RandomSeed.text, out var randomSeed);
 
-            var random = new System.Random(randomSeed);
+            var random = new Random(randomSeed);
             var generatorParams = m_Presets[m_PresetIndex].GeneratorParams;
             generatorParams.randomSeed = randomSeed;
             generatorParams.Terrain.Noise.seed = new Vector2(random.Next(-65535, 65535), random.Next(-65535, 65535));
@@ -98,7 +63,20 @@ namespace Blox.UINS
             generatorParams.Stone.Noise.seed = new Vector2(random.Next(-65535, 65535), random.Next(-65535, 65535));
             generatorParams.Tree.Noise.seed = new Vector2(random.Next(-65535, 65535), random.Next(-65535, 65535));
 
-            m_ChunkManager.StartNew(generatorParams);
+            Game.CurrentName = m_WorldName.text;
+            
+            FadeOut();
+            m_LoadingScreen.Show(() =>
+            {
+                m_Inventory.SetActive(true);
+                m_ChunkManager.StartNewGame(generatorParams);
+                gameObject.SetActive(false);
+            });
+        }
+         
+        private void Back()
+        {
+            m_MainMenu.SetActive(true);
             gameObject.SetActive(false);
         }
     }

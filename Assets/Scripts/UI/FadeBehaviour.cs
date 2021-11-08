@@ -1,108 +1,92 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using Blox.UtilitiesNS;
+using JetBrains.Annotations;
+using UnityEngine;
+using UnityEngine.UI;
 
 namespace Blox.UINS
 {
-    /// <summary>
-    /// A component that can be faded in and faded out.
-    /// </summary>
     public abstract class FadeBehaviour : MonoBehaviour
     {
-        /// <summary>
-        /// This enumeration contains all fading states.
-        /// </summary>
-        protected enum State
+        public enum FadeState
         {
-            /// <summary>
-            /// No fade.
-            /// </summary>
             None,
-            
-            /// <summary>
-            /// Fading in.
-            /// </summary>
             FadeIn,
-            
-            /// <summary>
-            /// Fading out.
-            /// </summary>
             FadeOut
-        } 
-        
-        /// <summary>
-        /// The time the loading screen takes to fade out.
-        /// </summary>
+        }
+
         public float FadeTime = 1f;
 
-        /// <summary>
-        /// The internal fade state. 
-        /// </summary>
-        private State m_State;
-
-        /// <summary>
-        /// Internal fade timer.
-        /// </summary>
+        private FadeState m_FadeState;
         private float m_FadeTimer;
+        private List<Graphic> m_GraphicElements;
+        [CanBeNull] private Action<FadeState> m_Callback;
 
-        /// <summary>
-        /// Starts to fade in.
-        /// </summary>
-        public void FadeIn()
+        public void FadeIn(Action<FadeState> callback = null)
         {
-            m_State = State.FadeIn;
-            StartFade(m_State);
+            InitializeFading(FadeState.FadeIn, callback);
         }
 
-        /// <summary>
-        /// Starts to fade out.
-        /// </summary>
-        public void FadeOut()
+        public void FadeOut(Action<FadeState> callback = null)
         {
-            m_State = State.FadeOut;
-            StartFade(m_State);
+            InitializeFading(FadeState.FadeOut, callback);
         }
-        
-        /// <summary>
-        /// This mehtod is called every frame.
-        /// </summary>
+
+        private void InitializeFading(FadeState fadeState, Action<FadeState> callback)
+        {
+            m_Callback = callback;
+            m_GraphicElements = new List<Graphic>();
+            CollectGraphicElements(gameObject, m_GraphicElements);
+            m_GraphicElements.ForEach(graphic =>
+            {
+                graphic.enabled = true;
+                graphic.color = fadeState == FadeState.FadeOut ? Color.white : Color.clear;
+            });
+            m_FadeState = fadeState;
+        }
+
+        private void CollectGraphicElements([NotNull] GameObject obj, [NotNull] List<Graphic> elements)
+        {
+            elements.AddRange(obj.GetComponents<Graphic>());
+            obj.Iterate(child => CollectGraphicElements(child, elements));
+        }
+
+        private void Awake()
+        {
+            OnAwake();
+        }
+
         private void Update()
         {
-            if (m_State != State.None)
+            if (m_FadeState != FadeState.None)
             {
                 m_FadeTimer += Time.deltaTime;
                 if (m_FadeTimer < FadeTime)
                 {
-                    var min = m_State == State.FadeIn ? 0f : 1f;
-                    var max = m_State == State.FadeIn ? 1f : 0f;
+                    var min = m_FadeState == FadeState.FadeIn ? 0f : 1f;
+                    var max = m_FadeState == FadeState.FadeIn ? 1f : 0f;
                     var t = m_FadeTimer / FadeTime;
                     var a = Mathf.Lerp(min, max, t);
-                    Fading(m_State, a);
+
+                    foreach (var element in m_GraphicElements)
+                        element.color = new Color(1f, 1f, 1f, a);
                 }
                 else
                 {
-                    EndFade(m_State);
-                    m_State = State.None;
+                    m_GraphicElements.ForEach(graphic =>
+                    {
+                        graphic.color = m_FadeState == FadeState.FadeIn ? Color.white : Color.clear;
+                    });
+                    m_Callback?.Invoke(m_FadeState);
+                    m_FadeState = FadeState.None;
                     m_FadeTimer = 0f;
                 }
             }
         }
 
-        /// <summary>
-        /// This method is called when a fading has started.
-        /// </summary>
-        /// <param name="state">The fading state.</param>
-        protected abstract void StartFade(State state);
-
-        /// <summary>
-        /// This method is called during a fading.
-        /// </summary>
-        /// <param name="state">The fading state.</param>
-        /// <param name="value">The current fading value between 0 and 1</param>
-        protected abstract void Fading(State state, float value);
-
-        /// <summary>
-        /// This method is called when a fading has finished.
-        /// </summary>
-        /// <param name="state">The fading state.</param>
-        protected abstract void EndFade(State state);
+        protected virtual void OnAwake()
+        {
+        }
     }
 }

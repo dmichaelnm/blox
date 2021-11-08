@@ -1,40 +1,48 @@
-﻿using Blox.EnvironmentNS;
+﻿using System;
+using Blox.EnvironmentNS;
+using Blox.PlayerNS;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Blox.UINS
 {
-    /// <summary>
-    /// This component controls the loading screen.
-    /// </summary>
     public class LoadingScreen : FadeBehaviour
     {
-        /// <summary>
-        /// The chunk manager component.
-        /// </summary>
-        [SerializeField] private ChunkManager m_ChunkManager;
+        internal enum LoadingState
+        {
+            ShowMainMenu,
 
-        /// <summary>
-        /// The loading screen image.
-        /// </summary>
-        private Image m_LoadingScreenImage;
-        
-        /// <summary>
-        /// This method is called when the component is created.
-        /// </summary>
+            ShowGame
+        }
+
+        [SerializeField] private ChunkManager m_ChunkManager;
+        [SerializeField] private MainMenu m_MainMenu;
+        [SerializeField] private PlayerController m_PlayerController;
+        [SerializeField] private GameObject m_RotationCamera;
+
+        private LoadingState m_LoadingState;
+        private Action m_Callback;
+
+        public void Show(Action callback)
+        {
+            GetComponent<Image>().enabled = true;
+            m_LoadingState = LoadingState.ShowGame;
+            m_Callback = callback;
+            FadeIn(OnEndFading);
+        }
+
         private void Awake()
         {
             m_ChunkManager.OnChunkManagerInitialized += OnChunkManagerInitialized;
             m_ChunkManager.OnChunkManagerDestroyed += OnChunkManagerDestroyed;
 
-            m_LoadingScreenImage = GetComponent<Image>();
-            m_LoadingScreenImage.enabled = true;
+            var image = GetComponent<Image>();
+            image.enabled = true;
+
+            m_LoadingState = LoadingState.ShowMainMenu;
+            m_MainMenu.gameObject.SetActive(false);
         }
 
-        /// <summary>
-        /// This method is called when the chunk manager component is about to be destroyed.
-        /// </summary>
-        /// <param name="component">The chunk manager component</param>
         private void OnChunkManagerDestroyed(ChunkManager component)
         {
             m_ChunkManager.OnChunkManagerInitialized -= OnChunkManagerInitialized;
@@ -43,22 +51,28 @@ namespace Blox.UINS
 
         private void OnChunkManagerInitialized(ChunkManager component)
         {
-            FadeOut();
+            if (m_LoadingState == LoadingState.ShowMainMenu)
+            {
+                m_PlayerController.gameObject.SetActive(false);
+
+                m_MainMenu.gameObject.SetActive(true);
+                m_MainMenu.FadeIn();
+                FadeOut();
+            }
+            else
+            {
+                FadeOut(state => gameObject.SetActive(false));
+            }
         }
 
-        protected override void StartFade(State state)
+        private void OnEndFading(FadeState fadeState)
         {
-            m_LoadingScreenImage.enabled = state == State.FadeOut;
-        }
-
-        protected override void Fading(State state, float value)
-        {
-            m_LoadingScreenImage.color = new Color(1f, 1f, 1f, value);
-        }
-
-        protected override void EndFade(State state)
-        {
-            m_LoadingScreenImage.enabled = state == State.FadeIn;
+            if (m_LoadingState == LoadingState.ShowGame)
+            {
+                m_RotationCamera.SetActive(false);
+                m_PlayerController.gameObject.SetActive(true);
+                m_Callback.Invoke();
+            }
         }
     }
 }
