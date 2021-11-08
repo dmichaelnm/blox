@@ -1,13 +1,10 @@
-﻿using UnityEditor.UI;
-using UnityEngine;
-using UnityEngine.UIElements;
+﻿using UnityEngine;
 
 namespace Blox.UINS
 {
     public class LoadGame : FadeBehaviour, MainMenuButton.IHandler
     {
         [SerializeField] private GameObject m_MainMenu;
-        [SerializeField] private ScrollbarEditor m_ScrollView;
         
         public void OnClicked(MainMenuButton src)
         {
