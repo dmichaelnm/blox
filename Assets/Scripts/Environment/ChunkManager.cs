@@ -92,10 +92,11 @@ namespace Blox.EnvironmentNS
         private Queue<JobData<SaveChunkJob>> m_SaveChunkJobQueue;
         private Queue<ChunkData> m_NewChunksQueue;
         private float m_MaintenanceTimer;
+        private bool m_MaintenanceEnabled;
 
         public void StartNewGame(GeneratorParams generatorParams)
         {
-            ResetGame();
+            ResetGame(true);
             GeneratorParams = generatorParams;
             m_State = State.StartLoadingChunks;
             m_CurrentChunkPosition = ChunkPosition.Zero;
@@ -160,7 +161,7 @@ namespace Blox.EnvironmentNS
             m_NewChunksQueue = new Queue<ChunkData>();
 
             // Removes only old temporary files
-            ResetGame();
+            ResetGame(false);
 
             m_PerfomanceInfo = new PerfomanceInfo();
             m_PerfomanceInfo.StartMeasure();
@@ -452,44 +453,47 @@ namespace Blox.EnvironmentNS
                         m_SaveChunkJobQueue.Enqueue(jobData);
                 }
 
-                m_MaintenanceTimer += Time.deltaTime;
-                if (m_MaintenanceTimer > maintenanceInterval)
+                if (m_MaintenanceEnabled)
                 {
-                    // Start the maintenance cycle
-                    var startTime = Time.realtimeSinceStartup;
-                    var count = 0;
-                    var candidates = 0;
-                    var distance = visibleChunks + 1;
-
-                    foreach (var chunkData in m_ChunkDataCache.Values.ToArray())
+                    m_MaintenanceTimer += Time.deltaTime;
+                    if (m_MaintenanceTimer > maintenanceInterval)
                     {
-                        var dx = Mathf.Abs(m_CurrentChunkPosition.X - chunkData.ChunkPosition.X);
-                        var dz = Mathf.Abs(m_CurrentChunkPosition.Z - chunkData.ChunkPosition.Z);
-                        if (dx > distance || dz > distance)
+                        // Start the maintenance cycle
+                        var startTime = Time.realtimeSinceStartup;
+                        var count = 0;
+                        var candidates = 0;
+                        var distance = visibleChunks + 1;
+
+                        foreach (var chunkData in m_ChunkDataCache.Values.ToArray())
                         {
-                            candidates++;
-                            var time = Time.realtimeSinceStartup - chunkData.LastActive;
-                            if (time > chunkDataLifetime)
+                            var dx = Mathf.Abs(m_CurrentChunkPosition.X - chunkData.ChunkPosition.X);
+                            var dz = Mathf.Abs(m_CurrentChunkPosition.Z - chunkData.ChunkPosition.Z);
+                            if (dx > distance || dz > distance)
                             {
-                                count++;
-                                // Initialize the job to save the chunk
-                                var job = new SaveChunkJob();
-                                job.Initialize(chunkData,
-                                    Game.TemporaryDirectory + "/" + chunkData.ChunkPosition.ToCacheFilename());
-                                var jobData = new JobData<SaveChunkJob>(job, job.Schedule());
-                                m_SaveChunkJobQueue.Enqueue(jobData);
-                                // Remove the chunk data container from the cache
-                                m_ChunkDataCache.Remove(chunkData.ChunkPosition.ToCacheKey());
+                                candidates++;
+                                var time = Time.realtimeSinceStartup - chunkData.LastActive;
+                                if (time > chunkDataLifetime)
+                                {
+                                    count++;
+                                    // Initialize the job to save the chunk
+                                    var job = new SaveChunkJob();
+                                    job.Initialize(chunkData,
+                                        Game.TemporaryDirectory + "/" + chunkData.ChunkPosition.ToCacheFilename());
+                                    var jobData = new JobData<SaveChunkJob>(job, job.Schedule());
+                                    m_SaveChunkJobQueue.Enqueue(jobData);
+                                    // Remove the chunk data container from the cache
+                                    m_ChunkDataCache.Remove(chunkData.ChunkPosition.ToCacheKey());
+                                }
                             }
+                            else
+                                chunkData.MarkAsActive();
                         }
-                        else
-                            chunkData.MarkAsActive();
+
+                        var duration = (Time.realtimeSinceStartup - startTime) * 1000f;
+                        Debug.Log($"Maintenance: {candidates} candidates, {count} removed in {duration}ms.");
+
+                        m_MaintenanceTimer = 0f;
                     }
-
-                    var duration = (Time.realtimeSinceStartup - startTime) * 1000f;
-                    Debug.Log($"Maintenance: {candidates} candidates, {count} removed in {duration}ms.");
-
-                    m_MaintenanceTimer = 0f;
                 }
             }
         }
@@ -569,19 +573,24 @@ namespace Blox.EnvironmentNS
             }
         }
 
-        private void ResetGame()
+        private void ResetGame(bool maintenanceEnabled)
         {
+            m_MaintenanceEnabled = maintenanceEnabled;
+            
             // Clear the cache
             m_ChunkDataCache.Clear();
 
             // Remove all child objcts
             transform.IterateInverse(t => Destroy(t.gameObject));
 
-            // Remove all temporary files
-            var files = Directory.GetFiles(Game.TemporaryDirectory);
-            foreach (var file in files)
+            if (!maintenanceEnabled)
             {
-                File.Delete(file);
+                // Remove all temporary files
+                var files = Directory.GetFiles(Game.TemporaryDirectory);
+                foreach (var file in files)
+                {
+                    File.Delete(file);
+                }
             }
 
             OnChunkManagerResetted?.Invoke(this);

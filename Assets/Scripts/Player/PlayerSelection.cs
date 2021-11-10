@@ -9,79 +9,26 @@ using UnityEngine.EventSystems;
 
 namespace Blox.PlayerNS
 {
-    /// <summary>
-    /// This component controls the selection of blocks by the player.
-    /// </summary>
     public class PlayerSelection : MonoBehaviour
     {
-        /// <summary>
-        /// This enumeration contains all supported mouse button states.
-        /// </summary>
         [Flags]
         public enum MouseButtonState
         {
-            /// <summary>
-            /// No mouse button event.
-            /// </summary>
             None = 0,
-
-            /// <summary>
-            /// The left mouse button is pressed down.
-            /// </summary>
             LeftButtonDown = 1,
-
-            /// <summary>
-            /// The right mouse button is pressed down.
-            /// </summary>
             RightButtonDown = 2,
-
-            /// <summary>
-            /// The middle mouse button is pressed down.
-            /// </summary>
             MiddleButtonDown = 4,
-
-            /// <summary>
-            /// The left mouse button is released.
-            /// </summary>
             LeftButtonUp = 8,
-
-            /// <summary>
-            /// The right mouse button is released.
-            /// </summary>
             RightButtonUp = 16,
-
-            /// <summary>
-            /// The midlle mouse button is released.
-            /// </summary>
             MiddleButtonUp = 32
         }
 
-        /// <summary>
-        /// The state of this component.
-        /// </summary>
         internal struct State
         {
-            /// <summary>
-            /// The current mouse button state.
-            /// </summary>
             public MouseButtonState MouseButtonState;
-
-            /// <summary>
-            /// The selected block face.
-            /// </summary>
             public BlockFace Face;
-
-            /// <summary>
-            /// The position of the selection block
-            /// </summary>
             public Vector3 Position;
 
-            /// <summary>
-            /// Compares this state to an other object. If the other object is also a state then all three properties
-            /// must be the same to be considered as equal.
-            /// </summary>
-            /// <param name="obj"></param>
-            /// <returns></returns>
             public override bool Equals(object obj)
             {
                 if (obj is State state)
@@ -91,10 +38,6 @@ namespace Blox.PlayerNS
                 return false;
             }
 
-            /// <summary>
-            /// Returns a hash code for this struct.
-            /// </summary>
-            /// <returns>Hash code</returns>
             [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
             public override int GetHashCode()
             {
@@ -102,77 +45,32 @@ namespace Blox.PlayerNS
             }
         }
 
-        /// <summary>
-        /// A constant for an error margin value used when detecting the selected block face.
-        /// </summary>
         private const float Epsilon = 0.001f;
 
-        /// <summary>
-        /// The maximum distance the player can select blocks from his position.
-        /// </summary>
         public float MaxSelectionDistance = 5;
 
-        /// <summary>
-        /// This event is triggered when a block is selected.
-        /// </summary>
         public event Events.PlayerSelectionEvent OnBlockSelected;
-
-        /// <summary>
-        /// This event is triggered when nothing is selected.
-        /// </summary>
         public event Events.EmptyEvent OnNothingSelected;
-        
-        /// <summary>
-        /// This event is triggered when the player selection is about to be destroyed.
-        /// </summary>
         public event Events.ComponentEvent<PlayerSelection> OnPlayerSelectionDestroyed;
 
-        /// <summary>
-        /// The camera object.
-        /// </summary>
         [SerializeField] private Transform m_CameraTransform;
-
-        /// <summary>
-        /// The chunk manager component.
-        /// </summary>
         [SerializeField] private ChunkManager m_ChunkManager;
-
         [SerializeField] private EventSystem m_EventSystem;
-        
-        /// <summary>
-        /// The mesh renderer of the selection block.
-        /// </summary>
+
         private MeshRenderer m_MeshRenderer;
-
-        /// <summary>
-        /// The current state.
-        /// </summary>
         private State m_CurrentState;
-
-        /// <summary>
-        /// The last state.
-        /// </summary>
         private State m_LastState;
 
-        /// <summary>
-        /// This method is called when this component is created.
-        /// </summary>
         private void Awake()
         {
             m_MeshRenderer = GetComponent<MeshRenderer>();
         }
 
-        /// <summary>
-        /// This method is called before the player selection is destroyed.
-        /// </summary>
         private void OnDestroy()
         {
             OnPlayerSelectionDestroyed?.Invoke(this);
         }
 
-        /// <summary>
-        /// This method is called every frame
-        /// </summary>
         private void Update()
         {
             // Get the current state of the mouse buttons

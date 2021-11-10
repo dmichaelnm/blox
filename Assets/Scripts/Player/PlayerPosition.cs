@@ -4,29 +4,12 @@ using UnityEngine;
 
 namespace Blox.PlayerNS
 {
-    /// <summary>
-    /// This struct contains detailed information about the players position.
-    /// </summary>
     public struct PlayerPosition
     {
-        /// <summary>
-        /// The size of a chunk.
-        /// </summary>
         public readonly ChunkSize ChunkSize;
-
-        /// <summary>
-        /// The current global position of the player in the world.
-        /// </summary>
         public Vector3 CurrentPosition;
-
-        /// <summary>
-        /// The last global position of the player in the world.
-        /// </summary>
         public Vector3 LastPosition;
 
-        /// <summary>
-        /// Returns the current global block position of the player
-        /// </summary>
         public Vector3Int CurrentGlobalBlockPosition
         {
             get
@@ -38,9 +21,6 @@ namespace Blox.PlayerNS
             }
         }
 
-        /// <summary>
-        /// Returns the last global block position of the player
-        /// </summary>
         public Vector3Int LastGlobalBlockPosition
         {
             get
@@ -52,19 +32,9 @@ namespace Blox.PlayerNS
             }
         }
 
-        /// <summary>
-        /// Returns the current chunk position of the player.
-        /// </summary>
         public ChunkPosition CurrentChunkPosition => ChunkPosition.FromGlobalPosition(ChunkSize, CurrentGlobalBlockPosition);
-
-        /// <summary>
-        /// Returns the last chunk position of the player.
-        /// </summary>
         public ChunkPosition LastChunkPosition => ChunkPosition.FromGlobalPosition(ChunkSize, LastGlobalBlockPosition);
 
-        /// <summary>
-        /// Returns the current local position of the player.
-        /// </summary>
         public Vector3 CurrentLocalPosition
         {
             get
@@ -75,9 +45,6 @@ namespace Blox.PlayerNS
             }
         }
         
-        /// <summary>
-        /// Returns the current local block position of the player.
-        /// </summary>
         public Vector3Int CurrentLocalBlockPosition
         {
             get
@@ -88,9 +55,6 @@ namespace Blox.PlayerNS
             }
         }
 
-        /// <summary>
-        /// Returns the last local block position of the player
-        /// </summary>
         public Vector3Int LastLocalBlockPosition
         {
             get
@@ -101,14 +65,8 @@ namespace Blox.PlayerNS
             }
         }
 
-        /// <summary>
-        /// A flag that indicates that the player has entered a new chunk or not.
-        /// </summary>
         public bool HasChunkChanged => !CurrentChunkPosition.Equals(LastChunkPosition);
 
-        /// <summary>
-        /// The position of the camera eye.
-        /// </summary>
         public Vector3 EyePosition
         {
             get
@@ -119,9 +77,6 @@ namespace Blox.PlayerNS
             }    
         }
         
-        /// <summary>
-        /// Returns the local position of the camera eye.
-        /// </summary>
         public Vector3 LocalEyePosition
         {
             get
@@ -132,9 +87,6 @@ namespace Blox.PlayerNS
             }
         }
 
-        /// <summary>
-        /// The position of the players feet.
-        /// </summary>
         public Vector3 FeetPosition
         {
             get
@@ -145,9 +97,6 @@ namespace Blox.PlayerNS
             }    
         }
         
-        /// <summary>
-        /// Returns the local position of the players feet.
-        /// </summary>
         public Vector3 LocalFeetPosition
         {
             get
@@ -158,27 +107,12 @@ namespace Blox.PlayerNS
             }
         }
 
-        /// <summary>
-        /// The forward vector of the main camera.
-        /// </summary>
         public Vector3 CameraForward => m_Camera.forward;
         
-        /// <summary>
-        /// The tranform object of the main camera.
-        /// </summary>
         private readonly Transform m_Camera;
 
-        /// <summary>
-        /// The transform object of the ground check object.
-        /// </summary>
         private readonly Transform m_GroundCheck;
         
-        /// <summary>
-        /// Constructor with a chunk size.
-        /// </summary>
-        /// <param name="chunkSize">The size of a chunk</param>
-        /// <param name="camera">The tranform object of the main camera</param>
-        /// <param name="groundCheck">The transform object of the ground check object</param>
         public PlayerPosition(ChunkSize chunkSize, Transform camera, Transform groundCheck)
         {
             ChunkSize = chunkSize;

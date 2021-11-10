@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Blox.UtilitiesNS;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -38,10 +39,13 @@ namespace Blox.UINS
             m_Callback = callback;
             m_GraphicElements = new List<Graphic>();
             CollectGraphicElements(gameObject, m_GraphicElements);
-            m_GraphicElements.ForEach(graphic =>
+            Iterate(graphic =>
             {
                 graphic.enabled = true;
-                graphic.color = fadeState == FadeState.FadeOut ? Color.white : Color.clear;
+                var c = graphic.color;
+                graphic.color = fadeState == FadeState.FadeOut
+                    ? new Color(c.r, c.g, c.b, 1f)
+                    : new Color(c.r, c.g, c.b, 0f);
             });
             m_FadeState = fadeState;
         }
@@ -69,14 +73,20 @@ namespace Blox.UINS
                     var t = m_FadeTimer / FadeTime;
                     var a = Mathf.Lerp(min, max, t);
 
-                    foreach (var element in m_GraphicElements)
-                        element.color = new Color(1f, 1f, 1f, a);
+                    Iterate(element =>
+                    {
+                        var c = element.color;
+                        element.color = new Color(c.r, c.g, c.b, a);
+                    });
                 }
                 else
                 {
-                    m_GraphicElements.ForEach(graphic =>
+                    Iterate(graphic =>
                     {
-                        graphic.color = m_FadeState == FadeState.FadeIn ? Color.white : Color.clear;
+                        var c = graphic.color;
+                        graphic.color = m_FadeState == FadeState.FadeIn
+                            ? new Color(c.r, c.g, c.b, 1f)
+                            : new Color(c.r, c.g, c.b, 0f);
                     });
                     m_Callback?.Invoke(m_FadeState);
                     m_FadeState = FadeState.None;
@@ -87,6 +97,14 @@ namespace Blox.UINS
 
         protected virtual void OnAwake()
         {
+        }
+
+        private void Iterate(Action<Graphic> iterator)
+        {
+            foreach (var element in m_GraphicElements.Where(element => !element.tag.Equals("NoFade")))
+            {
+                iterator(element);
+            }
         }
     }
 }

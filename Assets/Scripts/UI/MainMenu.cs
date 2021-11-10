@@ -16,6 +16,7 @@ namespace Blox.UINS
         [SerializeField] private GameObject m_Inventory;
         [SerializeField] private GameObject m_NewGame;
         [SerializeField] private GameObject m_ProceedButton;
+        [SerializeField] private GameObject m_SaveButton;
         [SerializeField] private GameObject m_RotationCamera;
         [SerializeField] private GameObject m_PlayerController;
         [SerializeField] private GameObject m_LoadScreen;
@@ -24,6 +25,7 @@ namespace Blox.UINS
         {
             m_Inventory.SetActive(false);
             m_ProceedButton.SetActive(true);
+            m_SaveButton.SetActive(true);
             m_PlayerController.SetActive(false);
             m_RotationCamera.SetActive(true);
             FadeIn();
@@ -63,8 +65,7 @@ namespace Blox.UINS
 
         public void SaveGame()
         {
-            var folder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            var srcFolder = folder + "/My Games/Blox/" + Game.CurrentName;
+            var srcFolder = Game.SaveGameDirectory + "/" + Game.CurrentName;
             var dstFile = srcFolder + ".zip";
             if (!Directory.Exists(srcFolder))
                 Directory.CreateDirectory(srcFolder);
@@ -80,35 +81,35 @@ namespace Blox.UINS
             // Save all chunks in cache
             m_ChunkManager.SaveCacheTo(srcFolder);
 
-            using (var w = new JsonTextWriter(new StreamWriter(srcFolder + "/properties.json")))
+            using (var writer = new JsonTextWriter(new StreamWriter(srcFolder + "/properties.json")))
             {
                 var playerController = m_PlayerController.GetComponent<PlayerController>();
                 var inventory = m_Inventory.GetComponent<Inventory>();
                 
-                w.WriteStartObject();
-                w.WritePropertyName("player");
-                w.WriteStartObject();
-                w.WriteProperty("positionX", playerController.PlayerPosition.CurrentPosition.x);
-                w.WriteProperty("positionY", playerController.PlayerPosition.CurrentPosition.y);
-                w.WriteProperty("positionZ", playerController.PlayerPosition.CurrentPosition.z);
-                w.WriteProperty("forwardX", playerController.PlayerPosition.CameraForward.x);
-                w.WriteProperty("forwardY", playerController.PlayerPosition.CameraForward.y);
-                w.WriteProperty("forwardZ", playerController.PlayerPosition.CameraForward.z);
-                w.WriteEndObject();
-                w.WritePropertyName("inventory");
-                w.WriteStartObject();
-                w.WriteProperty("slotCount", inventory.SlotCount);
+                writer.WriteStartObject();
+                writer.WritePropertyName("player");
+                writer.WriteStartObject();
+                writer.WriteProperty("positionX", playerController.PlayerPosition.CurrentPosition.x);
+                writer.WriteProperty("positionY", playerController.PlayerPosition.CurrentPosition.y);
+                writer.WriteProperty("positionZ", playerController.PlayerPosition.CurrentPosition.z);
+                writer.WriteProperty("rotationX", playerController.Rotation.x);
+                writer.WriteProperty("rotationY", playerController.Rotation.y);
+                writer.WriteEndObject();
+                writer.WritePropertyName("inventory");
+                writer.WriteStartObject();
+                writer.WriteProperty("slotCount", inventory.SlotCount);
                 for (var i = 0; i < inventory.SlotCount; i++)
                 {
                     var slot = inventory[i];
-                    w.WritePropertyName("slot" + i);
-                    w.WriteStartObject();
-                    w.WriteProperty("blocktype", slot.BlockTypeId);
-                    w.WriteProperty("count", slot.Count);
-                    w.WriteEndObject();
+                    writer.WritePropertyName("slot" + i);
+                    writer.WriteStartObject();
+                    writer.WriteProperty("blocktype", slot.BlockTypeId);
+                    writer.WriteProperty("count", slot.Count);
+                    writer.WriteEndObject();
                 }
-                w.WriteEndObject();
-                w.WriteEndObject();
+                writer.WriteEndObject();
+                m_ChunkManager.GeneratorParams.Write(writer);
+                writer.WriteEndObject();
             }
             
             File.Delete(dstFile);
@@ -134,6 +135,7 @@ namespace Blox.UINS
         protected override void OnAwake()
         {
             m_ProceedButton.SetActive(false);
+            m_SaveButton.SetActive(false);
         }
    }
 }

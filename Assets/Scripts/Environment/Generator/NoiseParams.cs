@@ -1,47 +1,50 @@
 ﻿using System;
+using Blox.UtilitiesNS;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Blox.EnvironmentNS.GeneratorNS
 {
-    /// <summary>
-    /// This struct contains parameter used by a perlin noise function.
-    /// </summary>
     [Serializable]
     public struct NoiseParams
     {
-        /// <summary>
-        /// A seed for the perlin noise calculation.
-        /// </summary>
         public Vector2 seed;
-        
-        /// <summary>
-        /// A scale number used to calculate the perlin noise coordinates.
-        /// </summary>
         public int scale;
-
-        /// <summary>
-        /// The number of ocatves used for the perlin noise calculation.
-        /// </summary>
         public int octaves;
-
-        /// <summary>
-        /// The base frequency used for the perlin noise calculation.
-        /// </summary>
         public float frequency;
-
-        /// <summary>
-        /// The redistribution used for the perlin noise calculation.
-        /// </summary>
         public float redistribution;
-
-        /// <summary>
-        /// The scale used to compensate the redistribution.
-        /// </summary>
         [Range(0f, 1f)] public float redistributionScale;
-
-        /// <summary>
-        /// The amplitude used for the perlin noise calculation.
-        /// </summary>
         public float amplitude;
+
+        public void Write(JsonTextWriter writer)
+        {
+            writer.WritePropertyName("noise");
+            writer.WriteStartObject();
+            writer.WriteProperty("seedX", seed.x);
+            writer.WriteProperty("seedY", seed.y);
+            writer.WriteProperty("scale", scale);
+            writer.WriteProperty("octaves", octaves);
+            writer.WriteProperty("frequency", frequency);
+            writer.WriteProperty("redistribution", redistribution);
+            writer.WriteProperty("redistributionScale", redistributionScale);
+            writer.WriteProperty("amplitude", amplitude);
+            writer.WriteEndObject();
+        }
+
+        public void Read(JsonTextReader reader)
+        {
+            reader.NextPropertyNameIs("noise");
+            reader.NextTokenIsStartObject();
+            reader.NextPropertyValue("seedX", out float seedX);
+            reader.NextPropertyValue("seedY", out float seedY);
+            seed = new Vector2(seedX, seedY);
+            reader.NextPropertyValue("scale", out scale);
+            reader.NextPropertyValue("octaves", out octaves);
+            reader.NextPropertyValue("frequency", out frequency);
+            reader.NextPropertyValue("redistribution", out redistribution);
+            reader.NextPropertyValue("redistributionScale", out redistributionScale);
+            reader.NextPropertyValue("amplitude", out amplitude);
+            reader.NextTokenIsEndObject();
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using UnityEngine;
 
 namespace Blox.GameNS
@@ -18,6 +19,19 @@ namespace Blox.GameNS
             }
         }
 
+        public static string SaveGameDirectory
+        {
+            get
+            {
+                var path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "/My Games/Blox";
+                // Create the directory if it not exists yet
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+                
+                return path;
+            }    
+        }
+        
         public static string CurrentName;
     }
 }

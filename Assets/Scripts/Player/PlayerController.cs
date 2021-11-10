@@ -15,7 +15,8 @@ namespace Blox.PlayerNS
             Initialized
         }
 
-        [CanBeNull] public static  PlayerController GetInstance()
+        [CanBeNull]
+        public static PlayerController GetInstance()
         {
             return GameObject.Find("Player")?.GetComponent<PlayerController>();
         }
@@ -32,9 +33,12 @@ namespace Blox.PlayerNS
         public float gravity = -20f;
         public float movementSpeed = 3f;
         public AudioSource movementSound;
+        public Vector3 InitialPosition;
+        public Vector2 InitialRotation;
 
         public PlayerPosition PlayerPosition => m_PlayerPosition;
-        
+        public Vector2 Rotation => m_Rotation;
+
         public event Events.PlayerPositionEvent OnPlayerMoved;
         public event Events.ComponentEvent<PlayerController> OnPlayerControllerDestroyed;
 
@@ -52,6 +56,8 @@ namespace Blox.PlayerNS
             m_ChunkManager = ChunkManager.GetInstance();
             if (m_ChunkManager != null)
             {
+                var center = m_ChunkManager.ChunkSize.Width / 2;
+                InitialPosition = new Vector3Int(center, 0, center);
                 m_ChunkManager.OnChunkManagerInitialized += OnChunkManagerInitialized;
                 m_ChunkManager.OnChunkManagerDestroyed += OnChunkManagerDestroyed;
                 m_ChunkManager.OnChunkManagerResetted += OnChunkManagerResetted;
@@ -82,6 +88,8 @@ namespace Blox.PlayerNS
         {
             // Switch the state to initializing
             m_State = State.Initializing;
+            m_PlayerPosition.CurrentPosition = InitialPosition;
+            m_Rotation = InitialRotation;
         }
 
         private void Update()
@@ -91,17 +99,19 @@ namespace Blox.PlayerNS
             {
                 if (movementSound.isPlaying)
                     movementSound.Stop();
-                
+
                 return;
             }
 
             if (m_State == State.Initializing)
             {
                 // Place the player to the start position
-                var center = m_ChunkManager.ChunkSize.Width / 2;
-                if (m_ChunkManager[ChunkPosition.Zero].GetSurfaceHeight(center, center, out var height))
+                var chunkPosition = m_PlayerPosition.CurrentChunkPosition;
+                var localPosition = m_PlayerPosition.CurrentLocalBlockPosition;
+                if (m_ChunkManager[chunkPosition].GetSurfaceHeight(localPosition.x,
+                    localPosition.z, out var height))
                 {
-                    var position = new Vector3(center + 0.5f, height + 2f, center + 0.5f);
+                    var position = new Vector3(InitialPosition.x, height + 2f, InitialPosition.z);
                     transform.position = position;
                     Debug.Log($"Initial player position: {position}");
                     m_State = State.Initialized;

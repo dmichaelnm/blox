@@ -4,37 +4,17 @@ using UnityEngine.UI;
 
 namespace Blox.UINS
 {
-    /// <summary>
-    /// This component manages the appearance of the inventory.
-    /// </summary>
     public class Inventory : MonoBehaviour
     {
-        /// <summary>
-        /// The number of slots in the inventory.
-        /// </summary>
         public int SlotCount = 10;
 
         public InventorySlot this[int index] => m_Slots[index];
         
-        /// <summary>
-        /// The prefab for an inventory slot.
-        /// </summary>
         [SerializeField] private GameObject m_SlotPrefab;
 
-        /// <summary>
-        /// An array with all inventory slots.
-        /// </summary>
         private InventorySlot[] m_Slots;
-
-        /// <summary>
-        /// The image of the inventory slots.
-        /// </summary>
         private Image m_InventoryImage;
         
-        /// <summary>
-        /// Adds a new block to the inventory.
-        /// </summary>
-        /// <param name="blockTypeId">The type of the block</param>
         public bool AddBlock(int blockTypeId)
         {
             foreach (var slot in m_Slots)
@@ -51,10 +31,6 @@ namespace Blox.UINS
             return false;
         }
 
-        /// <summary>
-        /// Removes a block from the selected slot.
-        /// </summary>
-        /// <returns>True, if removing the block was successful, otherwise false</returns>
         public bool RemoveBlock()
         {
             foreach (var slot in m_Slots)
@@ -68,20 +44,18 @@ namespace Blox.UINS
 
             return false;
         }
+
+        public void SetBlock(int slotIndex, int blockTypeId, int count)
+        {
+            m_Slots[slotIndex].BlockTypeId = blockTypeId;
+            m_Slots[slotIndex].Count = count;
+        }
         
-        /// <summary>
-        /// Returns the ID of the currently selected block type in this inventory.
-        /// </summary>
-        /// <returns>The ID of the selected block type</returns>
         public int GetSelectedBlockTypeID()
         {
             return (from slot in m_Slots where slot.IsBlockRemovable select slot.BlockTypeId).FirstOrDefault();
         }
 
-        /// <summary>
-        /// Shows or hides the inventory.
-        /// </summary>
-        /// <param name="enabled">True to show or false to hide.</param>
         public void SetEnabled(bool enabled)
         {
             m_InventoryImage.enabled = enabled;
@@ -89,9 +63,6 @@ namespace Blox.UINS
                 slot.SetEnabled(enabled);
         }   
         
-        /// <summary>
-        /// This method is called when the component is created.
-        /// </summary>
         private void Awake()
         {
             m_InventoryImage = GetComponent<Image>();
@@ -105,11 +76,10 @@ namespace Blox.UINS
                 m_Slots[i] = slotObj.GetComponent<InventorySlot>();
                 m_Slots[i].BlockTypeId = 0;
             }
+            
+            gameObject.SetActive(false);
         }
         
-        /// <summary>
-        /// This method is called every frame.
-        /// </summary>
         private void Update()
         {
             var slotIndex = -1;
