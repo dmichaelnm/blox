@@ -1,0 +1,184 @@
+﻿{
+  "blocks": [
+    {
+      "id": 0,
+      "name": "Air",
+      "icon": null,
+      "itemId": 0,
+      "isSolid": false,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": null,
+        "bottom": null,
+        "front": null,
+        "back": null,
+        "left": null,
+        "right": null
+      }
+    },
+    {
+      "id": 1,
+      "name": "Ground",
+      "icon": "&Sprites/Blocks/Ground",
+      "itemId": 1,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": true,
+      "faceTextures": {
+        "top": "Ground",
+        "bottom": "Ground",
+        "front": "Ground",
+        "back": "Ground",
+        "left": "Ground",
+        "right": "Ground"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Grass",
+      "icon": null,
+      "itemId": 1,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": true,
+      "faceTextures": {
+        "top": "Grass",
+        "bottom": "Ground",
+        "front": "GrassToGround",
+        "back": "GrassToGround",
+        "left": "GrassToGround",
+        "right": "GrassToGround"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Water",
+      "icon": null,
+      "itemId": 3,
+      "isSolid": false,
+      "isFluid": true,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Water",
+        "bottom": null,
+        "front": null,
+        "back": null,
+        "left": null,
+        "right": null
+      }
+    },
+    {
+      "id": 4,
+      "name": "Stone",
+      "icon": "&Sprites/Blocks/Stone",
+      "itemId": 4,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Stone",
+        "bottom": "Stone",
+        "front": "Stone",
+        "back": "Stone",
+        "left": "Stone",
+        "right": "Stone"
+      }
+    },
+    {
+      "id": 5,
+      "name": "SnowedStone",
+      "icon": null,
+      "itemId": 4,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Snow",
+        "bottom": "Stone",
+        "front": "SnowToStone",
+        "back": "SnowToStone",
+        "left": "SnowToStone",
+        "right": "SnowToStone"
+      }
+    },
+    {
+      "id": 6,
+      "name": "Trunk",
+      "icon": "&Sprites/Blocks/Trunk",
+      "itemId": 6,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Wood",
+        "bottom": "Wood",
+        "front": "Bark",
+        "back": "Bark",
+        "left": "Bark",
+        "right": "Bark"
+      }
+    },
+    {
+      "id": 7,
+      "name": "Leaves",
+      "icon": "&Sprites/Blocks/Leaves",
+      "itemId": 7,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Leaves",
+        "bottom": "Leaves",
+        "front": "Leaves",
+        "back": "Leaves",
+        "left": "Leaves",
+        "right": "Leaves"
+      }
+    },
+    {
+      "id": 8,
+      "name": "Sand",
+      "icon": "&Sprites/Blocks/Sand",
+      "itemId": 8,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Sand",
+        "bottom": "Sand",
+        "front": "Sand",
+        "back": "Sand",
+        "left": "Sand",
+        "right": "Sand"
+      }
+    }
+  ],
+  "creatable" : [
+    {
+      "id": 1000,
+      "name": "Plank",
+      "icon": "&Sprites/Blocks/Plank",
+      "itemId": 1000,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Plank",
+        "bottom": "Plank",
+        "front": "Plank",
+        "back": "Plank",
+        "left": "Plank",
+        "right": "Plank"
+      },
+      "ingredients": [
+        {
+          "entityId": 6,
+          "count": 1
+        }
+      ],
+      "duration": 60,
+      "resultCount": 4
+    }
+  ]
+}

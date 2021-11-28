@@ -1,0 +1,12 @@
+﻿Inventory:
+    - keine zwei Slot mit selben Materialien, wenn die nur halb leer sind.
+
+Crafting:
+    - Create Button ausblenden, wenn Queue voll ist
+    - Queue soll auch laufen, wenn Crafting-Window geschlossen ist
+    - eventuell Queue auch außerhalb des Crafting-Window anzeigen
+    - Create-Knopf soll bleiben, wenn für Auswahl noch genug Materialien da sind
+    - Itemliste aktualisieren nach jedem Create
+
+Environment:
+    - Grass wächst nach auf Ground-Feldern

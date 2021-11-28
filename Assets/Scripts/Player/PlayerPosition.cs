@@ -1,125 +1,61 @@
-﻿using Blox.EnvironmentNS;
-using Blox.UtilitiesNS;
+﻿using Blox.CommonNS;
+using Blox.TerrainNS;
 using UnityEngine;
 
 namespace Blox.PlayerNS
 {
-    public struct PlayerPosition
+    public readonly struct PlayerPosition
     {
-        public readonly ChunkSize ChunkSize;
-        public Vector3 CurrentPosition;
-        public Vector3 LastPosition;
+        public readonly Vector3 currentPosition;
 
-        public Vector3Int CurrentGlobalBlockPosition
+        public readonly Vector3 cameraForward;
+
+        public Vector3Int currentGlobalBlockPosition
         {
             get
             {
-                var x = MathUtilities.Floor(CurrentPosition.x);
-                var y = MathUtilities.Floor(CurrentPosition.y);
-                var z = MathUtilities.Floor(CurrentPosition.z);
+                var x = Math.FloorToInt(currentPosition.x);
+                var y = Math.FloorToInt(currentPosition.y);
+                var z = Math.FloorToInt(currentPosition.z);
                 return new Vector3Int(x, y, z);
             }
         }
 
-        public Vector3Int LastGlobalBlockPosition
+        public ChunkPosition currentChunkPosition
         {
             get
             {
-                var x = MathUtilities.Floor(LastPosition.x);
-                var y = MathUtilities.Floor(LastPosition.y);
-                var z = MathUtilities.Floor(LastPosition.z);
-                return new Vector3Int(x, y, z);
+                var cbp = currentGlobalBlockPosition;
+                return ChunkPosition.From(m_ChunkSize, cbp.x, cbp.z);
             }
         }
 
-        public ChunkPosition CurrentChunkPosition => ChunkPosition.FromGlobalPosition(ChunkSize, CurrentGlobalBlockPosition);
-        public ChunkPosition LastChunkPosition => ChunkPosition.FromGlobalPosition(ChunkSize, LastGlobalBlockPosition);
-
-        public Vector3 CurrentLocalPosition
+        public Vector3Int currentLocalBlockPosition
         {
             get
             {
-                var x = CurrentPosition.x - (ChunkSize.Width * CurrentChunkPosition.X);
-                var z = CurrentPosition.z - (ChunkSize.Width * CurrentChunkPosition.Z);
-                return new Vector3(x, CurrentPosition.y, z);
+                var cp = currentChunkPosition;
+                return cp.ToLocalPosition(m_ChunkSize, currentGlobalBlockPosition);
             }
         }
+
+        public Vector3 currentEyePosition => currentPosition + m_LocalEyePosition;
+
+        public Vector3 currentFeetPosition => currentPosition + m_LocalFootPosition;
         
-        public Vector3Int CurrentLocalBlockPosition
-        {
-            get
-            {
-                var x = CurrentGlobalBlockPosition.x - (ChunkSize.Width * CurrentChunkPosition.X);
-                var z = CurrentGlobalBlockPosition.z - (ChunkSize.Width * CurrentChunkPosition.Z);
-                return new Vector3Int(x, CurrentGlobalBlockPosition.y, z);
-            }
-        }
+        private readonly ChunkSize m_ChunkSize;
+        private readonly Vector3 m_LocalEyePosition;
+        private readonly Vector3 m_LocalFootPosition;
 
-        public Vector3Int LastLocalBlockPosition
+        public PlayerPosition(Vector3 currentPosition, ChunkSize chunkSize, Transform cameraTransform,
+            Transform groundCheck)
         {
-            get
-            {
-                var x = LastGlobalBlockPosition.x - (ChunkSize.Width * LastChunkPosition.X);
-                var z = LastGlobalBlockPosition.z - (ChunkSize.Width * LastChunkPosition.Z);
-                return new Vector3Int(x, LastGlobalBlockPosition.y, z);
-            }
-        }
+            m_ChunkSize = chunkSize;
+            m_LocalEyePosition = cameraTransform.localPosition;
+            m_LocalFootPosition = groundCheck.localPosition;
 
-        public bool HasChunkChanged => !CurrentChunkPosition.Equals(LastChunkPosition);
-
-        public Vector3 EyePosition
-        {
-            get
-            {
-                var cp = CurrentPosition;
-                cp.y += m_Camera.localPosition.y;
-                return cp;
-            }    
-        }
-        
-        public Vector3 LocalEyePosition
-        {
-            get
-            {
-                var x = EyePosition.x - (ChunkSize.Width * CurrentChunkPosition.X);
-                var z = EyePosition.z - (ChunkSize.Width * CurrentChunkPosition.Z);
-                return new Vector3(x, EyePosition.y, z);
-            }
-        }
-
-        public Vector3 FeetPosition
-        {
-            get
-            {
-                var cp = CurrentPosition;
-                cp.y += m_GroundCheck.localPosition.y;
-                return cp;
-            }    
-        }
-        
-        public Vector3 LocalFeetPosition
-        {
-            get
-            {
-                var x = FeetPosition.x - (ChunkSize.Width * CurrentChunkPosition.X);
-                var z = FeetPosition.z - (ChunkSize.Width * CurrentChunkPosition.Z);
-                return new Vector3(x, FeetPosition.y, z);
-            }
-        }
-
-        public Vector3 CameraForward => m_Camera.forward;
-        
-        private readonly Transform m_Camera;
-
-        private readonly Transform m_GroundCheck;
-        
-        public PlayerPosition(ChunkSize chunkSize, Transform camera, Transform groundCheck)
-        {
-            ChunkSize = chunkSize;
-            CurrentPosition = Vector3.zero;
-            LastPosition = Vector3.zero;
-            m_Camera = camera;
-            m_GroundCheck = groundCheck;
+            this.currentPosition = currentPosition;
+            cameraForward = cameraTransform.forward;
         }
     }
 }

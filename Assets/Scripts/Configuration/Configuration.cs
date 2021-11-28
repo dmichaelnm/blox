@@ -1,169 +1,172 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Blox.CommonNS;
-using Blox.UtilitiesNS;
+using Blox.TerrainNS.Generation;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace Blox.ConfigurationNS
 {
-    /// <summary>
-    /// This class contains the configuration information of the game.
-    /// </summary>
     public class Configuration
     {
-        /// <summary>
-        /// Singleton instance of this class.
-        /// </summary>
         private static Configuration _configuration;
 
-        /// <summary>
-        /// Returns the instance of this class.
-        /// </summary>
-        /// <returns>Configuration instance</returns>
         public static Configuration GetInstance()
         {
-            return _configuration ??= new Configuration();
+            return _configuration ??= new Configuration(
+                "Configuration/textures",
+                "Configuration/entities",
+                "Configuration/terrain-presets"
+            );
         }
 
-        /// <summary>
-        /// Cache for all texture types.
-        /// </summary>
         private Dictionary<string, TextureType> m_TextureTypes;
+        private Dictionary<int, EntityType> m_EntityTypes;
+        private Dictionary<string, GeneratorParams> m_TerrainPresets;
 
-        /// <summary>
-        /// Cache for all block types.
-        /// </summary>
-        private List<BlockType> m_BlockTypes;
-
-        /// <summary>
-        /// List of loaded terrain generator presets.
-        /// </summary>
-        private List<TerrainGeneratorPreset> m_TerrinaGeneratorPresets;
-        
-        /// <summary>
-        /// Private constructor.
-        /// </summary>
-        private Configuration()
+        private Configuration(
+            string textureTypesConfigPath,
+            string entityTypesConfigPath,
+            string terrainPresetsPath
+        )
         {
-            var performance = new PerfomanceInfo();
-            performance.StartMeasure();
+            Log.Info(this, "Configuration loaded.", () =>
+            {
+                m_TextureTypes = new Dictionary<string, TextureType>();
+                m_EntityTypes = new Dictionary<int, EntityType>();
+                m_TerrainPresets = new Dictionary<string, GeneratorParams>();
 
-            LoadTextureTypes();
-            LoadBlockTypes();
-            LoadPresets();
-
-            Debug.Log($"Configuration loaded : {performance}");
-            Debug.Log($"  - {m_TextureTypes.Count} texture types");
-            Debug.Log($"  - {m_BlockTypes.Count} block types");
-            Debug.Log($"  - {m_TerrinaGeneratorPresets.Count} presets");
+                LoadTextureTypes(textureTypesConfigPath);
+                LoadEntityTypes(entityTypesConfigPath);
+                LoadTerrainPresets(terrainPresetsPath);
+            });
         }
 
-        /// <summary>
-        /// Returns the texture type for the given name.
-        /// </summary>
-        /// <param name="name">The name of the texture type</param>
-        /// <returns>The texture type</returns>
         public TextureType GetTextureType([NotNull] string name)
         {
-            Assert.IsTrue(m_TextureTypes.ContainsKey(name));
-            return m_TextureTypes[name];
+            if (m_TextureTypes.ContainsKey(name))
+                return m_TextureTypes[name];
+
+            return null;
         }
 
-        /// <summary>
-        /// Returns the block type for the given ID.
-        /// </summary>
-        /// <param name="id">The ID of the texture type</param>
-        /// <returns>The block type</returns>
-        public BlockType GetBlockType(int id)
+        public List<T> GetEntities<T>() where T : EntityType
         {
-            Assert.IsTrue(id >= 0 && id < m_BlockTypes.Count);
-            return m_BlockTypes[id];
+            var entities = new List<T>();
+            foreach (var entity in m_EntityTypes.Values)
+            {
+                if (entity is T typedEntity)
+                    entities.Add(typedEntity);
+            }
+
+            return entities;
         }
 
-        /// <summary>
-        /// Returns a specific preset with the given name. 
-        /// </summary>
-        /// <param name="name">The name of the preset.</param>
-        /// <returns>The preset for the name (or a default preset if the name is unknown)</returns>
-        public TerrainGeneratorPreset GetTerrainGeneratorPreset([NotNull] string name)
+        public T GetEntityType<T>(BlockType.ID id) where T : EntityType
         {
-            return m_TerrinaGeneratorPresets.Find(preset => preset.Name.Equals(name));
+            return GetEntityType<T>((int)id);
         }
-        
-        /// <summary>
-        /// Returns an array with the loaded terrain generator presets.
-        /// </summary>
-        /// <returns>Array of presets</returns>
-        public TerrainGeneratorPreset[] GetTerrainGeneratorPresets()
+
+        public T GetEntityType<T>(int id) where T : EntityType
         {
-            return m_TerrinaGeneratorPresets.ToArray();
+            if (m_EntityTypes.ContainsKey(id))
+            {
+                var entity = m_EntityTypes[id];
+                if (entity is T type)
+                    return type;
+            }
+
+            return null;
         }
-        
-        /// <summary>
-        /// Loads the texture types defined in the configuration file.
-        /// </summary>
-        private void LoadTextureTypes()
+
+        public GeneratorParams GetTerrainPreset([NotNull] string name)
         {
-            m_TextureTypes = new Dictionary<string, TextureType>();
-            var asset = Resources.Load<TextAsset>("Configuration/textures");
-            Assert.IsNotNull(asset);
+            if (m_TerrainPresets.ContainsKey(name))
+                return m_TerrainPresets[name];
+
+            return default;
+        }
+
+        public string[] GetTerrainPresetNames()
+        {
+            return m_TerrainPresets.Keys.ToArray();
+        }
+
+        private void LoadTextureTypes(string textureTypesConfigPath)
+        {
+            var asset = Resources.Load<TextAsset>(textureTypesConfigPath);
+            if (asset == null)
+            {
+                Log.Error(this, $"No texture type configuration found at \"{textureTypesConfigPath}\".");
+                return;
+            }
+
             using (var reader = new JsonTextReader(new StringReader(asset.text)))
             {
                 reader.NextTokenIsStartObject();
-                reader.NextPropertyNameIs("textures");
-                reader.IterateOverObjectArray(() =>
+                reader.ForEachObject("textures", index =>
                 {
-                    // ReSharper disable once AccessToDisposedClosure
                     var textureType = new TextureType(reader);
-                    m_TextureTypes.Add(textureType.Name, textureType);
+                    m_TextureTypes.Add(textureType.name, textureType);
                 });
+                reader.NextTokenIsEndObject();
             }
+
+            Log.Debug(this, $"{m_TextureTypes.Count} texture types loaded.");
         }
 
-        /// <summary>
-        /// Loads the block types defined in the configuration file.
-        /// </summary>
-        private void LoadBlockTypes()
+        private void LoadEntityTypes(string entityTypesConfigPath)
         {
-            m_BlockTypes = new List<BlockType>();
-            var asset = Resources.Load<TextAsset>("Configuration/blocks");
-            Assert.IsNotNull(asset);
+            var asset = Resources.Load<TextAsset>(entityTypesConfigPath);
+            if (asset == null)
+            {
+                Log.Error(this, $"No entity type configuration found at \"{entityTypesConfigPath}\".");
+                return;
+            }
+
             using (var reader = new JsonTextReader(new StringReader(asset.text)))
             {
                 reader.NextTokenIsStartObject();
-                reader.NextPropertyNameIs("blocks");
-                reader.IterateOverObjectArray(() =>
+                reader.ForEachObject("blocks", index =>
                 {
-                    // ReSharper disable once AccessToDisposedClosure
-                    var blockType = new BlockType(reader);
-                    m_BlockTypes.Add(blockType);
+                    var blockType = new BlockType(reader, this);
+                    m_EntityTypes.Add(blockType.id, blockType);
                 });
+                reader.ForEachObject("creatable", index =>
+                {
+                    var creatableType = new CreatableType(reader, this);
+                    m_EntityTypes.Add(creatableType.id, creatableType);
+                });
+                reader.NextTokenIsEndObject();
             }
-            m_BlockTypes.Sort((bt1, bt2) => bt1.ID - bt2.ID);
+
+            Log.Debug(this, $"{m_EntityTypes.Count} entity types loaded.");
         }
 
-        /// <summary>
-        /// Loads the presets defines in the configuration file.
-        /// </summary>
-        private void LoadPresets()
+        private void LoadTerrainPresets(string terrainPresetsPath)
         {
-            m_TerrinaGeneratorPresets = new List<TerrainGeneratorPreset>();
-            var asset = Resources.Load<TextAsset>("Configuration/presets");
-            Assert.IsNotNull(asset);
+            var asset = Resources.Load<TextAsset>(terrainPresetsPath);
+            if (asset == null)
+            {
+                Log.Error(this, $"No terrain preset configuration found at \"{terrainPresetsPath}\".");
+                return;
+            }
+
             using (var reader = new JsonTextReader(new StringReader(asset.text)))
             {
                 reader.NextTokenIsStartObject();
-                reader.NextPropertyNameIs("terrain-generator");
-                reader.IterateOverObjectArray(() =>
+                reader.ForEachObject("presets", index =>
                 {
-                    // ReSharper disable once AccessToDisposedClosure
-                    var preset = new TerrainGeneratorPreset(reader);
-                    m_TerrinaGeneratorPresets.Add(preset);
+                    reader.NextPropertyValue("name", out string name);
+                    var generatorParams = new GeneratorParams();
+                    generatorParams.Load(reader);
+                    m_TerrainPresets.Add(name, generatorParams);
                 });
             }
+
+            Log.Debug(this, $"{m_TerrainPresets.Count} terrain presets loaded.");
         }
     }
 }

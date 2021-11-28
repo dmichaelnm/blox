@@ -1,0 +1,217 @@
+﻿{
+  "presets": [
+    {
+      "name": "Mountains",
+      "generatorParams": {
+        "randomSeed": 0,
+        "baseLine": 32,
+        "terrain": {
+          "noise": {
+            "scale": 128,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 2,
+            "redistributionScale": 1
+          },
+          "amplitude": 40
+        },
+        "water": {
+          "noise": {
+            "scale": 1024,
+            "seed": "[0, 0]",
+            "octaves": 3,
+            "frequency": 3,
+            "redistribution": 3,
+            "redistributionScale": 1
+          },
+          "amplitude": 10,
+          "waterOffset": -3
+        },
+        "sand": {
+          "noise": {
+            "scale": 256,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 4,
+            "redistributionScale": 1
+          },
+          "amplitude": 2
+        },
+        "stone": {
+          "stoneLineOffset": 15,
+          "stoneScattering": 5,
+          "snowLineOffset": 10,
+          "snowScattering": 5,
+          "noise": {
+            "scale": 32,
+            "seed": "[0, 0]",
+            "octaves": 6,
+            "frequency": 6,
+            "redistribution": 6,
+            "redistributionScale": 1
+          },
+          "threshold": 0.5
+        },
+        "tree": {
+          "maxTreeCount": 100,
+          "noise": {
+            "scale": 64,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 4,
+            "redistributionScale": 1
+          },
+          "threshold": 0.5,
+          "minHeight": 4,
+          "maxHeight": 8,
+          "maxRadius": 4
+        }
+      }
+    },
+    {
+      "name": "Flatland",
+      "generatorParams": {
+        "randomSeed": 0,
+        "baseLine": 32,
+        "terrain": {
+          "noise": {
+            "scale": 128,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 1,
+            "redistributionScale": 1
+          },
+          "amplitude": 10
+        },
+        "water": {
+          "noise": {
+            "scale": 1024,
+            "seed": "[0, 0]",
+            "octaves": 3,
+            "frequency": 3,
+            "redistribution": 3,
+            "redistributionScale": 1
+          },
+          "amplitude": 10,
+          "waterOffset": -3
+        },
+        "sand": {
+          "noise": {
+            "scale": 256,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 4,
+            "redistributionScale": 1
+          },
+          "amplitude": 2
+        },
+        "stone": {
+          "stoneLineOffset": 15,
+          "stoneScattering": 5,
+          "snowLineOffset": 10,
+          "snowScattering": 5,
+          "noise": {
+            "scale": 32,
+            "seed": "[0, 0]",
+            "octaves": 6,
+            "frequency": 6,
+            "redistribution": 6,
+            "redistributionScale": 1
+          },
+          "threshold": 0.5
+        },
+        "tree": {
+          "maxTreeCount": 100,
+          "noise": {
+            "scale": 64,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 4,
+            "redistributionScale": 1
+          },
+          "threshold": 0.5,
+          "minHeight": 4,
+          "maxHeight": 8,
+          "maxRadius": 4
+        }
+      }
+    },
+    {
+      "name": "Waterworld",
+      "generatorParams": {
+        "randomSeed": 0,
+        "baseLine": 32,
+        "terrain": {
+          "noise": {
+            "scale": 128,
+            "seed": "[0, 0]",
+            "octaves": 5,
+            "frequency": 5,
+            "redistribution": 4,
+            "redistributionScale": 0.5
+          },
+          "amplitude": 30
+        },
+        "water": {
+          "noise": {
+            "scale": 1024,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 4,
+            "redistributionScale": 0.5
+          },
+          "amplitude": 10,
+          "waterOffset": 0
+        },
+        "sand": {
+          "noise": {
+            "scale": 1024,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 4,
+            "redistributionScale": 0.5
+          },
+          "amplitude": 3
+        },
+        "stone": {
+          "stoneLineOffset": 15,
+          "stoneScattering": 5,
+          "snowLineOffset": 10,
+          "snowScattering": 5,
+          "noise": {
+            "scale": 32,
+            "seed": "[0, 0]",
+            "octaves": 6,
+            "frequency": 6,
+            "redistribution": 6,
+            "redistributionScale": 1
+          },
+          "threshold": 0.5
+        },
+        "tree": {
+          "maxTreeCount": 100,
+          "noise": {
+            "scale": 64,
+            "seed": "[0, 0]",
+            "octaves": 4,
+            "frequency": 4,
+            "redistribution": 4,
+            "redistributionScale": 1
+          },
+          "threshold": 0.5,
+          "minHeight": 4,
+          "maxHeight": 8,
+          "maxRadius": 4
+        }
+      }
+    }
+  ]
+}

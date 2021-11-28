@@ -1,151 +1,138 @@
 ﻿{
   "textures": [
     {
-      "id": 0,
-      "name": "Ground",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Ground-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Ground-Normal"
-        }
-      }
-    },
-    {
-      "id": 1,
-      "name": "Grass",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Grass-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Grass-Normal"
-        }
-      }
-    },
-    {
-      "id": 2,
-      "name": "GrassToGround",
-      "shader": {
-        "name": "Shader Graphs/FadingBlockFaceShader",
-        "properties": {
-          "_MainTexture1": "@Textures/Blocks/Grass-Albedo",
-          "_NormalTexture1": "@Textures/Blocks/Grass-Normal",
-          "_MainTexture2": "@Textures/Blocks/Ground-Albedo",
-          "_NormalTexture2": "@Textures/Blocks/Ground-Normal",
-          "_Fade": "[0.8, 0.6]"
-        }
-      }
-    },
-    {
-      "id": 3,
-      "name": "Wood",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Wood-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Wood-Normal"
-        }
-      }
-    },
-    {
-      "id": 4,
-      "name": "WoodRings",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/WoodRings-Albedo",
-          "_NormalTexture": "@Textures/Blocks/WoodRings-Normal"
-        }
-      }
-    },
-    {
-      "id": 5,
-      "name": "Leaves",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Leaves-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Leaves-Normal"
-        }
-      }
-    },
-    {
-      "id": 6,
-      "name": "Leaves2",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Leaves2-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Leaves-Normal"
-        }
-      }
-    },
-    {
-      "id": 7,
-      "name": "Stone",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Stone-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Stone-Normal"
-        }
-      }
-    },
-    {
-      "id": 8,
-      "name": "Snow",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Snow-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Snow-Normal"
-        }
-      }
-    },
-    {
-      "id": 9,
-      "name": "SnowToStone",
-      "shader": {
-        "name": "Shader Graphs/FadingBlockFaceShader",
-        "properties": {
-          "_MainTexture1": "@Textures/Blocks/Snow-Albedo",
-          "_NormalTexture1": "@Textures/Blocks/Snow-Normal",
-          "_MainTexture2": "@Textures/Blocks/Stone-Albedo",
-          "_NormalTexture2": "@Textures/Blocks/Stone-Normal",
-          "_Fade": "[0.8, 0.6]"
-        }
-      }
-    },
-    {
-      "id": 10,
-      "name": "Sand",
-      "shader": {
-        "name": "Shader Graphs/BlockFaceShader",
-        "properties": {
-          "_MainTexture": "@Textures/Blocks/Sand-Albedo",
-          "_NormalTexture": "@Textures/Blocks/Sand-Normal"
-        }
-      }
-    },
-    {
-      "id": 11,
       "name": "Water",
-      "shader": {
-        "name": "Shader Graphs/WaterShader",
-        "properties": {
-          "_WaterNormalTexture": "@Textures/Blocks/Water_Normal",
-          "_WaterColor": "#264C53",
-          "_WaterNormalStrength1": 0.2,
-          "_WaterNormalStrength2": 0.3,
-          "_WaterNormalStrength3": 0.1,
-          "_WaterNormalStrength4": 0.1,
-          "_WaterSpeed1": 0.17,
-          "_WaterSpeed2": 0.23,
-          "_WaterSpeed3": 0.13,
-          "_WaterSpeed4": 0.27,
-          "_Transparency": 0.9,
-          "_Sparkling": 0.44
-        }
+      "shader": "Shader Graphs/Water",
+      "properties": {
+        "_WaterColorTexture": "@Textures/Blocks/Water/Water_002_COLOR",
+        "_WaterColorTint": "#388759",
+        "_NormalTexture": "@Textures/Blocks/Water/Water_002_NORM",
+        "_RoughnessTexture": "@Textures/Blocks/Water/Water_002_ROUGH",
+        "_NormalStrength": 0.1,
+        "_Tiling": "[32, 32]",
+        "_Speed1": 0.2,
+        "_Direction1": "[0.1, -0.8]",
+        "_Speed2": 0.175,
+        "_Direction2": "[-0.4, -0.2]",
+        "_Speed3": 0.15,
+        "_Direction3": "[0.9, 0.3]",
+        "_Speed4": 0.1,
+        "_Direction4": "[-0.2, -0.2]",
+        "_Transparency": 0.9,
+        "_Sparkle": 0.96,
+        "_SparkleColor1": "#0A0A0A",
+        "_SparkleColor2": "#333333"
+      }
+    },
+    {
+      "name": "Ground",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_Tint": "#876040",
+        "_MainTexture": "@Textures/Blocks/Ground/rocky-worn-ground-albedo",
+        "_NormalTexture": "@Textures/Blocks/Ground/rocky-worn-ground-normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Ground/rocky-worn-ground-ao"
+      }
+    },
+    {
+      "name": "Grass",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Grass/grass1-albedo3",
+        "_NormalTexture": "@Textures/Blocks/Grass/grass1-normal1-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Grass/grass1-ao"
+      }
+    },
+    {
+      "name": "GrassToGround",
+      "shader": "Shader Graphs/Block Face Faded",
+      "properties": {
+        "_Fade": "[0.6, 0.9]",
+        "_MainTopTexture": "@Textures/Blocks/Grass/grass1-albedo3",
+        "_NormalTopTexture": "@Textures/Blocks/Grass/grass1-normal1-ogl",
+        "_AmbientOcclusionTopTexture": "@Textures/Blocks/Grass/grass1-ao",
+        "_SideTint": "#876040",
+        "_MainSideTexture": "@Textures/Blocks/Ground/rocky-worn-ground-albedo",
+        "_NormalSideTexture": "@Textures/Blocks/Ground/rocky-worn-ground-normal-ogl",
+        "_AmbientOcclusionSideTexture": "@Textures/Blocks/Ground/rocky-worn-ground-ao"
+      }
+    },
+    {
+      "name": "Stone",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Stone/volcanic-rock1-albedo",
+        "_NormalTexture": "@Textures/Blocks/Stone/volcanic-rock1-normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Stone/volcanic-rock1-ao"
+      }
+    },
+    {
+      "name": "Snow",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Snow/snow-packed12-Base_Color",
+        "_NormalTexture": "@Textures/Blocks/Snow/snow-packed12-Normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Snow/snow-packed12-ao"
+      }
+    },
+    {
+      "name": "SnowToStone",
+      "shader": "Shader Graphs/Block Face Faded",
+      "properties": {
+        "_Fade": "[0, 0.5]",
+        "_MainTopTexture": "@Textures/Blocks/Snow/snow-packed12-Base_Color",
+        "_NormalTopTexture": "@Textures/Blocks/Snow/snow-packed12-Normal-ogl",
+        "_AmbientOcclusionTopTexture": "@Textures/Blocks/Snow/snow-packed12-ao",
+        "_MainSideTexture": "@Textures/Blocks/Stone/volcanic-rock1-albedo",
+        "_NormalSideTexture": "@Textures/Blocks/Stone/volcanic-rock1-normal-ogl",
+        "_AmbientOcclusionSideTexture": "@Textures/Blocks/Stone/volcanic-rock1-ao",
+        "_Smoothness": 0.5
+      }
+    },
+    {
+      "name": "Bark",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Wood/oak-bark-basecolor3",
+        "_NormalTexture": "@Textures/Blocks/Wood/oak-bark-normal-ogl3",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Wood/bark-stack-ao3",
+        "_Tint": "#FFC39B"
+      }
+    },
+    {
+      "name": "Wood",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Wood/cheap_plywood1r_albedo",
+        "_NormalTexture": "@Textures/Blocks/Wood/cheap_plywood1r_Normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Wood/cheap_plywood1r_ao"
+      }
+    },
+    {
+      "name": "Leaves",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Leaves/leaves-01-albedo",
+        "_NormalTexture": "@Textures/Blocks/Leaves/leaves-01-normal",
+        "_Tint": "#848484"
+      }
+    },
+    {
+      "name": "Sand",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Sand/sandyground1_albedo",
+        "_NormalTexture": "@Textures/Blocks/Sand/sandyground1_Normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Sand/sandyground1_ao"
+      }
+    },
+    {
+      "name": "Plank",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Plank/oldplywood-albedo",
+        "_NormalTexture": "@Textures/Blocks/Plank/oldplywood-normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Plank/oldplywood-ao"
       }
     }
   ]

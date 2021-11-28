@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
+using Blox.CommonNS;
 using Blox.ConfigurationNS;
-using Blox.EnvironmentNS;
-using Blox.GameNS;
-using Blox.UtilitiesNS;
+using Blox.TerrainNS;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using Math = Blox.CommonNS.Math;
 
 namespace Blox.PlayerNS
 {
@@ -23,58 +22,52 @@ namespace Blox.PlayerNS
             MiddleButtonUp = 32
         }
 
-        internal struct State
+        public struct SelectionState
         {
-            public MouseButtonState MouseButtonState;
-            public BlockFace Face;
-            public Vector3 Position;
+            public MouseButtonState mouseButtonState;
+            public Vector3 position;
+            public BlockFace face;
+            public BlockType blockType;
 
             public override bool Equals(object obj)
             {
-                if (obj is State state)
-                    return MouseButtonState == state.MouseButtonState && Face == state.Face &&
-                           Position == state.Position;
+                if (obj is SelectionState state)
+                    return mouseButtonState == state.mouseButtonState && face == state.face &&
+                           position == state.position;
 
                 return false;
             }
 
-            [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
             public override int GetHashCode()
             {
-                return (int)MouseButtonState * (int)Face * Position.GetHashCode();
+                return (int)mouseButtonState * (int)face * position.GetHashCode();
             }
         }
 
         private const float Epsilon = 0.001f;
 
-        public float MaxSelectionDistance = 5;
+        public float maxSelectionDistance = 5;
 
-        public event Events.PlayerSelectionEvent OnBlockSelected;
-        public event Events.EmptyEvent OnNothingSelected;
-        public event Events.ComponentEvent<PlayerSelection> OnPlayerSelectionDestroyed;
+        public event Events.ComponentArgsEvent<PlayerSelection, SelectionState> OnBlockSelected;
+        public event Events.ComponentEvent<PlayerSelection> OnNoBlockSelected;
 
         [SerializeField] private Transform m_CameraTransform;
         [SerializeField] private ChunkManager m_ChunkManager;
         [SerializeField] private EventSystem m_EventSystem;
 
         private MeshRenderer m_MeshRenderer;
-        private State m_CurrentState;
-        private State m_LastState;
+        private SelectionState m_CurrentSelectionState;
+        private SelectionState m_LastSelectionState;
 
         private void Awake()
         {
             m_MeshRenderer = GetComponent<MeshRenderer>();
         }
 
-        private void OnDestroy()
-        {
-            OnPlayerSelectionDestroyed?.Invoke(this);
-        }
-
         private void Update()
         {
             // Get the current state of the mouse buttons
-            m_CurrentState.MouseButtonState =
+            m_CurrentSelectionState.mouseButtonState =
                 (Input.GetMouseButtonDown(0) ? MouseButtonState.LeftButtonDown : MouseButtonState.None) |
                 (Input.GetMouseButtonDown(1) ? MouseButtonState.RightButtonDown : MouseButtonState.None) |
                 (Input.GetMouseButtonDown(2) ? MouseButtonState.MiddleButtonDown : MouseButtonState.None) |
@@ -84,13 +77,13 @@ namespace Blox.PlayerNS
 
             // If the mouse hits a component in UI canvas then ignore it here
             if (m_EventSystem.IsPointerOverGameObject())
-                m_CurrentState.MouseButtonState = MouseButtonState.None;
+                m_CurrentSelectionState.mouseButtonState = MouseButtonState.None;
 
             var show = false;
 
             // Calculates which block face is selected
             var ray = new Ray(m_CameraTransform.position, m_CameraTransform.forward);
-            if (Physics.Raycast(ray, out var hit, MaxSelectionDistance))
+            if (Physics.Raycast(ray, out var hit, maxSelectionDistance))
             {
                 show = true;
 
@@ -98,9 +91,9 @@ namespace Blox.PlayerNS
                 var y = hit.point.y + Epsilon;
                 var z = hit.point.z + Epsilon;
 
-                var bx = MathUtilities.Floor(x) + Epsilon;
-                var by = MathUtilities.Floor(y) + Epsilon;
-                var bz = MathUtilities.Floor(z) + Epsilon;
+                var bx = Math.FloorToInt(x) + Epsilon;
+                var by = Math.FloorToInt(y) + Epsilon;
+                var bz = Math.FloorToInt(z) + Epsilon;
 
                 var dx = Mathf.Abs(x - bx);
                 var dy = Mathf.Abs(y - by);
@@ -116,50 +109,50 @@ namespace Blox.PlayerNS
                     if (ray.direction.y < 0f && dy < Epsilon)
                     {
                         // Top
-                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
-                            MathUtilities.Floor(y) - 0.5f,
-                            MathUtilities.Floor(z) + 0.5f);
-                        m_CurrentState.Face = BlockFace.Top;
+                        m_CurrentSelectionState.position = new Vector3(Math.FloorToInt(x) + 0.5f,
+                            Math.FloorToInt(y) - 0.5f,
+                            Math.FloorToInt(z) + 0.5f);
+                        m_CurrentSelectionState.face = BlockFace.Top;
                     }
                     else if (ray.direction.y > 0f && dy < Epsilon)
                     {
                         // Bottom
-                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
-                            MathUtilities.Floor(y) + 0.5f,
-                            MathUtilities.Floor(z) + 0.5f);
-                        m_CurrentState.Face = BlockFace.Bottom;
+                        m_CurrentSelectionState.position = new Vector3(Math.FloorToInt(x) + 0.5f,
+                            Math.FloorToInt(y) + 0.5f,
+                            Math.FloorToInt(z) + 0.5f);
+                        m_CurrentSelectionState.face = BlockFace.Bottom;
                     }
                     else if (ray.direction.z > 0f && dz < Epsilon)
                     {
                         // Front
-                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
-                            MathUtilities.Floor(y) + 0.5f,
-                            MathUtilities.Floor(z) + 0.5f);
-                        m_CurrentState.Face = BlockFace.Front;
+                        m_CurrentSelectionState.position = new Vector3(Math.FloorToInt(x) + 0.5f,
+                            Math.FloorToInt(y) + 0.5f,
+                            Math.FloorToInt(z) + 0.5f);
+                        m_CurrentSelectionState.face = BlockFace.Front;
                     }
                     else if (ray.direction.z < 0f && dz < Epsilon)
                     {
                         // Back
-                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
-                            MathUtilities.Floor(y) + 0.5f,
-                            MathUtilities.Floor(z) - 0.5f);
-                        m_CurrentState.Face = BlockFace.Back;
+                        m_CurrentSelectionState.position = new Vector3(Math.FloorToInt(x) + 0.5f,
+                            Math.FloorToInt(y) + 0.5f,
+                            Math.FloorToInt(z) - 0.5f);
+                        m_CurrentSelectionState.face = BlockFace.Back;
                     }
                     else if (ray.direction.x > 0f && dx < Epsilon)
                     {
                         // Left
-                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) + 0.5f,
-                            MathUtilities.Floor(y) + 0.5f,
-                            MathUtilities.Floor(z) + 0.5f);
-                        m_CurrentState.Face = BlockFace.Left;
+                        m_CurrentSelectionState.position = new Vector3(Math.FloorToInt(x) + 0.5f,
+                            Math.FloorToInt(y) + 0.5f,
+                            Math.FloorToInt(z) + 0.5f);
+                        m_CurrentSelectionState.face = BlockFace.Left;
                     }
                     else if (ray.direction.x < 0f && dx < Epsilon)
                     {
                         // Right
-                        m_CurrentState.Position = new Vector3(MathUtilities.Floor(x) - 0.5f,
-                            MathUtilities.Floor(y) + 0.5f,
-                            MathUtilities.Floor(z) + 0.5f);
-                        m_CurrentState.Face = BlockFace.Right;
+                        m_CurrentSelectionState.position = new Vector3(Math.FloorToInt(x) - 0.5f,
+                            Math.FloorToInt(y) + 0.5f,
+                            Math.FloorToInt(z) + 0.5f);
+                        m_CurrentSelectionState.face = BlockFace.Right;
                     }
                 }
                 else
@@ -169,31 +162,25 @@ namespace Blox.PlayerNS
             if (show)
             {
                 // show the selection block
-                transform.position = m_CurrentState.Position;
-                m_MeshRenderer.sharedMaterial.SetFloat("_Face", (int)m_CurrentState.Face);
+                transform.position = m_CurrentSelectionState.position;
+                m_MeshRenderer.sharedMaterial.SetFloat("_Face", (int)m_CurrentSelectionState.face);
                 m_MeshRenderer.enabled = true;
 
                 // check, if new event must be send
-                if (!m_CurrentState.Equals(m_LastState))
+                if (!m_CurrentSelectionState.Equals(m_LastSelectionState))
                 {
-                    var position = new Vector3Int(
-                        MathUtilities.Floor(m_CurrentState.Position.x),
-                        MathUtilities.Floor(m_CurrentState.Position.y),
-                        MathUtilities.Floor(m_CurrentState.Position.z));
-                    var chunkPosition = ChunkPosition.FromGlobalPosition(m_ChunkManager.ChunkSize, position);
-                    var chunkData = m_ChunkManager[chunkPosition];
-                    var localPosition = chunkPosition.ToLocalPosition(m_ChunkManager.ChunkSize, position);
-                    var blockType = chunkData[localPosition];
+                    var position = m_CurrentSelectionState.position.ToVector3Int();
+                    m_CurrentSelectionState.blockType = m_ChunkManager.GetEntity<BlockType>(position);
 
-                    OnBlockSelected?.Invoke(position, blockType, m_CurrentState.Face, m_CurrentState.MouseButtonState);
-                    m_LastState = m_CurrentState;
+                    OnBlockSelected?.Invoke(this, m_CurrentSelectionState);
+                    m_LastSelectionState = m_CurrentSelectionState;
                 }
             }
             else
             {
                 // hide the selection block
                 m_MeshRenderer.enabled = false;
-                OnNothingSelected?.Invoke();
+                OnNoBlockSelected?.Invoke(this);
             }
         }
     }
