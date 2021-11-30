@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Blox.CommonNS;
 using Blox.ConfigurationNS;
 using Blox.GameNS;
@@ -9,60 +11,27 @@ namespace Blox.UserInterfaceNS.CraftingWindow
 {
     public class CraftingWindow : MonoBehaviour
     {
-        internal class Product
-        {
-            public CreatableType creatable;
-            public float timer;
-            public GameObject queueItem;
-        }
-
         public event Events.ComponentEvent<CraftingWindow> onOpen;
         public event Events.ComponentEvent<CraftingWindow> onClose;
 
         [SerializeField] private GameManager m_GameManager;
+        [SerializeField] private CraftingQueue m_CraftingQueue;
         [SerializeField] private GameObject m_ItemParent;
         [SerializeField] private GameObject m_CreateItemPrefab;
         [SerializeField] private GameObject m_IngredientsParent;
         [SerializeField] private GameObject m_IngredientPrefab;
-        [SerializeField] private GameObject m_QueueParent;
-        [SerializeField] private GameObject m_QueuePrefab;
         [SerializeField] private GameObject m_Result;
         [SerializeField] private Text m_TimeValue;
         [SerializeField] private Button m_ButtonCreate;
 
         private CreatableType m_CreatableType;
-        private List<Product> m_Products;
+        private List<CreatableType> m_Creatables;
 
         public void Open()
         {
             gameObject.SetActive(true);
             onOpen?.Invoke(this);
-
-            m_ItemParent.RemoveChildren();
-            var entities = Configuration.GetInstance().GetEntities<CreatableType>();
-            foreach (var entity in entities)
-            {
-                var complete = true;
-                foreach (var ingredient in entity.ingredients)
-                {
-                    var count = m_GameManager.inventory.Contains(ingredient.entityType);
-                    if (count < ingredient.count)
-                    {
-                        complete = false;
-                        break;
-                    }
-                }
-
-                if (complete)
-                {
-                    var obj = Instantiate(m_CreateItemPrefab, m_ItemParent.transform);
-                    var createItemButton = obj.GetComponent<CreateItemButton>();
-                    createItemButton.itemImage.sprite = entity.icon;
-                    createItemButton.itemName.text = entity.name;
-                    createItemButton.craftingWindow = this;
-                    createItemButton.creatable = entity;
-                }
-            }
+            RefreshList();
         }
 
         public void Close()
@@ -87,51 +56,28 @@ namespace Blox.UserInterfaceNS.CraftingWindow
 
             SetResultEntity(creatable);
 
-            m_ButtonCreate.gameObject.SetActive(m_Products.Count < 8);
+            m_ButtonCreate.gameObject.SetActive(m_CraftingQueue.count < 7);
         }
 
         public void OnCreateItem()
         {
-            var product = new Product();
-            product.creatable = m_CreatableType;
-            product.timer = m_CreatableType.duration;
-            product.queueItem = Instantiate(m_QueuePrefab, m_QueueParent.transform);
-            UpdateQueueItem(product);
-            
-            m_Products.Add(product);
-            
+            m_CraftingQueue.CreateItem(m_CreatableType);
             m_IngredientsParent.RemoveChildren();
-            SetResultEntity(null);
-            m_ButtonCreate.gameObject.SetActive(false);
-            
-            foreach (var ingredient in m_CreatableType.ingredients)
-            {
-                m_GameManager.inventory.RemoveItem(ingredient.entityType, ingredient.count);
-            }
+            RefreshList();
+
+            if (m_CraftingQueue.count == 7 || !m_Creatables.Contains(m_CreatableType))
+                SetResultEntity(null);
         }
 
         private void Awake()
         {
-            m_Products = new List<Product>();
+            m_CraftingQueue.onItemCrafted += OnItemCrafted;
         }
 
-        private void Update()
+        private void OnItemCrafted(CraftingQueue component, CreatableType creatable)
         {
-            for (var i = m_Products.Count-1; i>=0; i--)
-            {
-                var product = m_Products[i];
-                product.timer -= Time.deltaTime;
-                if (product.timer <= 0f)
-                {
-                    m_Products.RemoveAt(i);
-                    m_GameManager.inventory.AddItem(product.creatable, product.creatable.resultCount);
-                    Destroy(product.queueItem);
-                }
-                else
-                {
-                    UpdateQueueItem(product);   
-                }
-            }
+            if (gameObject.activeSelf)
+                RefreshList();
         }
 
         private void SetResultEntity(CreatableType creatable)
@@ -142,16 +88,39 @@ namespace Blox.UserInterfaceNS.CraftingWindow
             var resultText = m_Result.GetComponentInChildren<Text>();
             resultText.text = creatable != null ? $"{creatable.resultCount}" : "";
             m_TimeValue.text = creatable != null ? $"{creatable.duration}s" : "";
+            m_ButtonCreate.gameObject.SetActive(creatable != null);
         }
 
-        private void UpdateQueueItem(Product product)
+        private void RefreshList()
         {
-            var qi = product.queueItem;
-            var image = qi.GetComponentInChildren<Image>();
-            image.sprite = product.creatable.icon;
-            image.color = Color.white;
-            var text = qi.GetComponentInChildren<Text>();
-            text.text = $"{product.timer:F0}";
+            m_Creatables = new List<CreatableType>();
+            m_ItemParent.RemoveChildren();
+            var entities = Configuration.GetInstance().GetEntities<CreatableType>();
+            foreach (var entity in entities)
+            {
+                var complete = true;
+                foreach (var ingredient in entity.ingredients)
+                {
+                    var count = m_GameManager.inventory.Contains(ingredient.entityType);
+                    if (count < ingredient.count)
+                    {
+                        complete = false;
+                        break;
+                    }
+                }
+
+                if (complete)
+                {
+                    var obj = Instantiate(m_CreateItemPrefab, m_ItemParent.transform);
+                    var createItemButton = obj.GetComponent<CreateItemButton>();
+                    createItemButton.itemImage.sprite = entity.icon;
+                    createItemButton.itemName.text = entity.name;
+                    createItemButton.craftingWindow = this;
+                    createItemButton.creatable = entity;
+
+                    m_Creatables.Add(entity);
+                }
+            }
         }
     }
 }

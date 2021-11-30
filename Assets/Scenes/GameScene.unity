@@ -629,12 +629,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_GameManager: {fileID: 576556786}
+  m_CraftingQueue: {fileID: 1261888394}
   m_ItemParent: {fileID: 1250840091}
   m_CreateItemPrefab: {fileID: 8027625915787923249, guid: 3921b19d073dff14aabbb9ef08200035, type: 3}
   m_IngredientsParent: {fileID: 463164828}
   m_IngredientPrefab: {fileID: 3464385111100475946, guid: bea7de6225d98f6468b437b8363c27bb, type: 3}
-  m_QueueParent: {fileID: 1980178494}
-  m_QueuePrefab: {fileID: 3464385111100475946, guid: bea7de6225d98f6468b437b8363c27bb, type: 3}
   m_Result: {fileID: 266455492}
   m_TimeValue: {fileID: 460059970}
   m_ButtonCreate: {fileID: 1696644159}
@@ -1223,7 +1222,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   slotCount: 10
-  slotSize: 64
+  slotSize: 40
   slotPrefab: {fileID: 4528345315856566569, guid: 3106e05a0e15d1e45a2819f1a92c458c, type: 3}
 --- !u!114 &270749593
 MonoBehaviour:
@@ -2164,7 +2163,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 17.000023}
+  m_AnchoredPosition: {x: 0, y: 16.999962}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &475297438
@@ -2774,6 +2773,7 @@ MonoBehaviour:
   m_MinimapFrame: {fileID: 848656763}
   m_Underwater: {fileID: 1066412499}
   m_CraftingWindow: {fileID: 197401783}
+  m_CraftingQueue: {fileID: 1261888394}
 --- !u!1 &585211798
 GameObject:
   m_ObjectHideFlags: 0
@@ -3741,8 +3741,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1817665167}
   m_HandleRect: {fileID: 1817665166}
   m_Direction: 2
-  m_Value: 0
-  m_Size: 0.94054633
+  m_Value: 1
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -5192,7 +5192,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1829868144}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.8511674
+  m_Size: 0.9432251
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -5415,7 +5415,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.00003317555}
+  m_AnchoredPosition: {x: 0, y: -0.000076293945}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1250840093
@@ -5444,6 +5444,52 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!1 &1261888393
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1261888395}
+  - component: {fileID: 1261888394}
+  m_Layer: 0
+  m_Name: CraftingQueue
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1261888394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1261888393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e95a426e4544eab08e108f26f19bd7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_GameManager: {fileID: 576556786}
+  m_QueueParent: {fileID: 1980178494}
+  m_QueuePrefab: {fileID: 3464385111100475946, guid: bea7de6225d98f6468b437b8363c27bb, type: 3}
+--- !u!4 &1261888395
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1261888393}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 8
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1293593510
 GameObject:
   m_ObjectHideFlags: 0
@@ -5944,6 +5990,10 @@ MonoBehaviour:
       minHeight: 4
       maxHeight: 8
       maxRadius: 4
+    resources:
+    - masterBlockId: 0
+      resourceBlockId: 0
+      probability: 0
   maintenanceInterval: 60
   cacheTimeout: 120
   activeGame: 0

@@ -25,7 +25,25 @@ namespace Blox.UserInterfaceNS.InventoryNS
 
         public bool AddItem(EntityType type, int count = 1)
         {
-            return m_Slots.Any(slot => slot.AddItem(type, count));
+            foreach (var slot in m_Slots)
+            {
+                if (type.Equals(slot.entityType) && slot.count < slotSize)
+                {
+                    var c = Mathf.Min(slotSize - slot.count, count);
+                    slot.AddItem(type, c);
+                    if (c == count)
+                        return true;
+                    count -= c;
+                }
+            }
+
+            foreach (var slot in m_Slots)
+            {
+                if (slot.entityType == null)
+                    return slot.AddItem(type, count);
+            }
+
+            return false;
         }
 
         public bool RemoveItem(EntityType entityType, int count = 1)
@@ -38,11 +56,11 @@ namespace Blox.UserInterfaceNS.InventoryNS
 
             return false;
         }
-        
+
         public bool RemoveItem(out EntityType entityType, int count = 1)
         {
             entityType = default;
-            
+
             if (selectedSlot != null && selectedSlot.RemoveItem(out entityType))
             {
                 if (selectedSlot.count == 0)
@@ -50,7 +68,7 @@ namespace Blox.UserInterfaceNS.InventoryNS
                     selectedSlot.Mark(false);
                     selectedIndex = -1;
                 }
-                
+
                 return true;
             }
 
@@ -59,15 +77,15 @@ namespace Blox.UserInterfaceNS.InventoryNS
 
         public int Contains(EntityType entityType)
         {
-            return (from slot in m_Slots where slot.entityType.Equals(entityType) select slot.count).FirstOrDefault();
+            return (from slot in m_Slots where entityType.Equals(slot.entityType) select slot.count).FirstOrDefault();
         }
-        
+
         public void ResetInventory()
         {
             foreach (var slot in m_Slots)
                 slot.ResetSlot();
         }
-        
+
         public void Load(JsonTextReader reader)
         {
             reader.NextPropertyNameIs("inventory");
@@ -79,9 +97,10 @@ namespace Blox.UserInterfaceNS.InventoryNS
                 m_Slots[i].Load(reader);
                 reader.NextTokenIsEndObject();
             }
+
             reader.NextTokenIsEndObject();
         }
-        
+
         public void Save(JsonTextWriter writer)
         {
             writer.WritePropertyName("inventory");
@@ -93,9 +112,10 @@ namespace Blox.UserInterfaceNS.InventoryNS
                 m_Slots[i].Save(writer);
                 writer.WriteEndObject();
             }
+
             writer.WriteEndObject();
         }
-        
+
         private void Awake()
         {
             for (var i = 0; i < slotCount; i++)

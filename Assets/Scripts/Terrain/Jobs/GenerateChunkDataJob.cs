@@ -8,9 +8,36 @@ namespace Blox.TerrainNS.JobsNS
 {
     public struct GenerateChunkDataJob : IChunkDataProviderJob
     {
+        public struct GeneratorParamsJob
+        {
+            public readonly int randomSeed;
+            public readonly int baseLine;
+            public readonly GeneratorParams.TerrainParams terrain;
+            public readonly GeneratorParams.WaterParams water;
+            public readonly GeneratorParams.SandParams sand;
+            public readonly GeneratorParams.StoneParams stone;
+            public readonly GeneratorParams.TreeParams tree;
+            [ReadOnly] public NativeArray<GeneratorParams.ResourcesParams> resources;
+
+            public GeneratorParamsJob(GeneratorParams generatorParams)
+            {
+                randomSeed = generatorParams.randomSeed;
+                baseLine = generatorParams.baseLine;
+                terrain = generatorParams.terrain;
+                water = generatorParams.water;
+                sand = generatorParams.sand;
+                stone = generatorParams.stone;
+                tree = generatorParams.tree;
+                resources = new NativeArray<GeneratorParams.ResourcesParams>(generatorParams.resources.Length,
+                    Allocator.Persistent);
+                for (var i = 0; i < generatorParams.resources.Length; i++)
+                    resources[i] = generatorParams.resources[i];
+            }
+        }
+
         [ReadOnly] private ChunkSize m_ChunkSize;
         [ReadOnly] private ChunkPosition m_ChunkPosition;
-        [ReadOnly] private GeneratorParams m_GeneratorParams;
+        [ReadOnly] private GeneratorParamsJob m_GeneratorParams;
 
         private NativeArray<int> m_BlockTypeIds;
 
@@ -18,7 +45,13 @@ namespace Blox.TerrainNS.JobsNS
         {
             m_ChunkSize = chunkSize;
             m_ChunkPosition = chunkPosition;
-            m_GeneratorParams = generatorParams;
+            m_GeneratorParams = new GeneratorParamsJob(generatorParams);
+
+            for (var i = 0; i < generatorParams.resources.Length; i++)
+            {
+                m_GeneratorParams.resources[i] = generatorParams.resources[i];
+            }
+
             m_BlockTypeIds = new NativeArray<int>(m_ChunkSize.size, Allocator.Persistent);
         }
 
@@ -33,6 +66,7 @@ namespace Blox.TerrainNS.JobsNS
         public void Dispose()
         {
             m_BlockTypeIds.Dispose();
+            m_GeneratorParams.resources.Dispose();
         }
 
         public ChunkPosition GetChunkPosition()
@@ -94,16 +128,16 @@ namespace Blox.TerrainNS.JobsNS
                             {
                                 if (y > terrainHeight - sandDepth && y <= terrainHeight)
                                     // sand
-                                    m_BlockTypeIds[index] = (int)BlockType.ID.Sand;
+                                    m_BlockTypeIds[index] = GetBlockTypeId(random, (int)BlockType.ID.Sand);
                                 else if (y <= terrainHeight && y < stoneLevel)
                                     // stone
-                                    m_BlockTypeIds[index] = (int)BlockType.ID.Stone;
+                                    m_BlockTypeIds[index] = GetBlockTypeId(random, (int)BlockType.ID.Stone);
                                 else if (y == terrainHeight)
                                     // grass
-                                    m_BlockTypeIds[index] = (int)BlockType.ID.Grass;
+                                    m_BlockTypeIds[index] = GetBlockTypeId(random, (int)BlockType.ID.Grass);
                                 else
                                     // ground
-                                    m_BlockTypeIds[index] = (int)BlockType.ID.Ground;
+                                    m_BlockTypeIds[index] = GetBlockTypeId(random, (int)BlockType.ID.Ground);
                             }
                             else
                             {
@@ -203,6 +237,21 @@ namespace Blox.TerrainNS.JobsNS
             } while (y >= 0);
 
             return -1;
+        }
+
+        private int GetBlockTypeId(Random random, int masterBlockId)
+        {
+            foreach (var resource in m_GeneratorParams.resources)
+            {
+                if (resource.masterBlockId == masterBlockId)
+                {
+                    var value = (float)random.NextDouble();
+                    if (value <= resource.probability)
+                        return resource.resourceBlockId;
+                }
+            }
+
+            return masterBlockId;
         }
     }
 }

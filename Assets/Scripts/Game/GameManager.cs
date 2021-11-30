@@ -100,6 +100,7 @@ namespace Blox.GameNS
         [SerializeField] private Image m_MinimapFrame;
         [SerializeField] private Underwater m_Underwater;
         [SerializeField] private CraftingWindow m_CraftingWindow;
+        [SerializeField] private CraftingQueue m_CraftingQueue;
 
         private bool m_LoadedGame;
 
@@ -197,6 +198,7 @@ namespace Blox.GameNS
                 m_ChunkManager.generatorParams.Save(writer);
                 m_PlayerControl.Save(writer);
                 m_Inventory.Save(writer);
+                m_CraftingQueue.Save(writer);
                 writer.WriteEndObject();
             }
 
@@ -365,6 +367,7 @@ namespace Blox.GameNS
                 generatorParams.Load(reader);
                 m_PlayerControl.Load(reader);
                 m_Inventory.Load(reader);
+                m_CraftingQueue.Load(reader);
             }
 
             // delete the temp folder

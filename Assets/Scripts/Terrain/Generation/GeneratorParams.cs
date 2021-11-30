@@ -2,11 +2,12 @@
 using Blox.CommonNS;
 using Newtonsoft.Json;
 using UnityEngine;
+using Random = System.Random;
 
 namespace Blox.TerrainNS.Generation
 {
     [Serializable]
-    public struct GeneratorParams
+    public class GeneratorParams
     {
         [Serializable]
         public struct TerrainParams
@@ -52,6 +53,14 @@ namespace Blox.TerrainNS.Generation
             public int maxRadius;
         }
 
+        [Serializable]
+        public struct ResourcesParams
+        {
+            public int masterBlockId;
+            public int resourceBlockId;
+            public float probability;
+        }
+        
         public int randomSeed;
         public int baseLine;
         public TerrainParams terrain;
@@ -59,11 +68,17 @@ namespace Blox.TerrainNS.Generation
         public SandParams sand;
         public StoneParams stone;
         public TreeParams tree;
+        public ResourcesParams[] resources;
 
+        public GeneratorParams()
+        {
+            resources = new ResourcesParams[1];
+        }
+        
         public void InitializeSeeds(int randomSeed)
         {
             this.randomSeed = randomSeed;
-            var random = new System.Random(randomSeed);
+            var random = new Random(randomSeed);
             terrain.noise.seed = new Vector2(random.Next(-100000, 100000), random.Next(-100000, 100000));
             water.noise.seed = new Vector2(random.Next(-100000, 100000), random.Next(-100000, 100000));
             sand.noise.seed = new Vector2(random.Next(-100000, 100000), random.Next(-100000, 100000));
@@ -116,6 +131,20 @@ namespace Blox.TerrainNS.Generation
             reader.NextPropertyValue("maxHeight", out tree.maxHeight);
             reader.NextPropertyValue("maxRadius", out tree.maxRadius);
             reader.NextTokenIsEndObject();
+
+            var index = 0;
+            reader.NextPropertyNameIs("resources");
+            reader.NextTokenIs(JsonToken.StartArray);
+            while (!reader.NextTokenIs(JsonToken.EndArray, false))
+            {
+                reader.CurrentTokenIsStartObject();
+                var resource = new ResourcesParams();
+                reader.NextPropertyValue("masterBlockId", out resource.masterBlockId);
+                reader.NextPropertyValue("resourceBlockId", out resource.resourceBlockId);
+                reader.NextPropertyValue("probability", out resource.probability);
+                resources[index++] = resource; 
+                reader.NextTokenIsEndObject();
+            }
             
             reader.NextTokenIsEndObject();
         }
@@ -165,6 +194,18 @@ namespace Blox.TerrainNS.Generation
             writer.WriteProperty("maxHeight", tree.maxHeight);
             writer.WriteProperty("maxRadius", tree.maxRadius);
             writer.WriteEndObject();
+            
+            writer.WritePropertyName("resources");
+            writer.WriteStartArray();
+            foreach (var resource in resources)
+            {
+                writer.WriteStartObject();
+                writer.WriteProperty("masterBlockId", resource.masterBlockId);
+                writer.WriteProperty("resourceBlockId", resource.resourceBlockId);
+                writer.WriteProperty("probability", resource.probability);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
             
             writer.WriteEndObject();
         }

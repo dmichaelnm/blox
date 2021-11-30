@@ -134,6 +134,45 @@
         "_NormalTexture": "@Textures/Blocks/Plank/oldplywood-normal-ogl",
         "_AmbientOcclusionTexture": "@Textures/Blocks/Plank/oldplywood-ao"
       }
+    },
+    {
+      "name": "FloorWood1",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Plank/old-plank-flooring1_basecolor",
+        "_NormalTexture": "@Textures/Blocks/Plank/old-plank-flooring1_normal",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Plank/old-plank-flooring1_AO"
+      }
+    },
+    {
+      "name": "WallStone1",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Wall/dungeon-stone1-albedo2",
+        "_NormalTexture": "@Textures/Blocks/Wall/dungeon-stone1-normal",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Wall/dungeon-stone1-ao"
+      }
+    },
+    {
+      "name": "WallBrick1",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Wall/rounded-brick1-albedo",
+        "_NormalTexture": "@Textures/Blocks/Wall/rounded-brick1-normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Wall/rounded-brick1-ao"
+      }
+    },
+    {
+      "name": "Redstone",
+      "shader": "Shader Graphs/Block Face",
+      "properties": {
+        "_MainTexture": "@Textures/Blocks/Metal/dull-copper_albedo",
+        "_NormalTexture": "@Textures/Blocks/Metal/dull-copper_normal-ogl",
+        "_AmbientOcclusionTexture": "@Textures/Blocks/Metal/dull-copper_ao",
+        "_Metallic": 0.385,
+        "_Smoothness": 0.6,
+        "_Tint": "#984040"
+      }
     }
   ]
 }

@@ -17,7 +17,8 @@ namespace Blox.ConfigurationNS
             SnowedStone = 5,
             Trunk = 6,
             Leaves = 7,
-            Sand = 8
+            Sand = 8,
+            Redstone = 9
         }
 
         public readonly int itemId;

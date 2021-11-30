@@ -68,7 +68,14 @@
           "minHeight": 4,
           "maxHeight": 8,
           "maxRadius": 4
-        }
+        },
+        "resources": [
+          {
+            "masterBlockId": 4,
+            "resourceBlockId": 9,
+            "probability": 0.1
+          }
+        ]
       }
     },
     {
@@ -139,7 +146,14 @@
           "minHeight": 4,
           "maxHeight": 8,
           "maxRadius": 4
-        }
+        },
+        "resources": [
+          {
+            "masterBlockId": 4,
+            "resourceBlockId": 9,
+            "probability": 0.1
+          }
+        ]
       }
     },
     {
@@ -210,7 +224,14 @@
           "minHeight": 4,
           "maxHeight": 8,
           "maxRadius": 4
-        }
+        },
+        "resources": [
+          {
+            "masterBlockId": 4,
+            "resourceBlockId": 9,
+            "probability": 0.1
+          }
+        ]
       }
     }
   ]

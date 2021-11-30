@@ -152,9 +152,26 @@
         "left": "Sand",
         "right": "Sand"
       }
+    },
+    {
+      "id": 9,
+      "name": "Redstone",
+      "icon": "&Sprites/Blocks/Redstone",
+      "itemId": 9,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "Redstone",
+        "bottom": "Redstone",
+        "front": "Redstone",
+        "back": "Redstone",
+        "left": "Redstone",
+        "right": "Redstone"
+      }
     }
   ],
-  "creatable" : [
+  "creatable": [
     {
       "id": 1000,
       "name": "Plank",
@@ -174,11 +191,90 @@
       "ingredients": [
         {
           "entityId": 6,
-          "count": 1
+          "count": 2
         }
       ],
       "duration": 60,
-      "resultCount": 4
+      "resultCount": 1
+    },
+    {
+      "id": 1001,
+      "name": "Wooden Floor",
+      "icon": "&Sprites/Blocks/FloorWood1",
+      "itemId": 1001,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "FloorWood1",
+        "bottom": "FloorWood1",
+        "front": "FloorWood1",
+        "back": "FloorWood1",
+        "left": "FloorWood1",
+        "right": "FloorWood1"
+      },
+      "ingredients": [
+        {
+          "entityId": 1000,
+          "count": 2
+        }
+      ],
+      "duration": 120,
+      "resultCount": 1
+    },
+    {
+      "id": 1002,
+      "name": "Stone Wall",
+      "icon": "&Sprites/Blocks/WallStone1",
+      "itemId": 1002,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "WallStone1",
+        "bottom": "WallStone1",
+        "front": "WallStone1",
+        "back": "WallStone1",
+        "left": "WallStone1",
+        "right": "WallStone1"
+      },
+      "ingredients": [
+        {
+          "entityId": 4,
+          "count": 2
+        }
+      ],
+      "duration": 120,
+      "resultCount": 1
+    },
+    {
+      "id": 1003,
+      "name": "Brick Wall",
+      "icon": "&Sprites/Blocks/WallBrick1",
+      "itemId": 1003,
+      "isSolid": true,
+      "isFluid": false,
+      "isSoil": false,
+      "faceTextures": {
+        "top": "WallBrick1",
+        "bottom": "WallBrick1",
+        "front": "WallBrick1",
+        "back": "WallBrick1",
+        "left": "WallBrick1",
+        "right": "WallBrick1"
+      },
+      "ingredients": [
+        {
+          "entityId": 1002,
+          "count": 2
+        },
+        {
+          "entityId": 9,
+          "count": 1
+        }
+      ],
+      "duration": 240,
+      "resultCount": 1
     }
   ]
 }
