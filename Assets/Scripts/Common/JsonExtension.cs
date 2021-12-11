@@ -308,6 +308,13 @@ namespace Blox.CommonNS
                     }
                 }
 
+                // enum
+                if (typeof(T).IsEnum)
+                {
+                    result = (T)Enum.Parse(typeof(T), str, true);
+                    return true;
+                }
+
                 // normal string
                 result = (T)value;
                 return true;

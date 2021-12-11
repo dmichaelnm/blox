@@ -1,20 +1,43 @@
 ﻿using Blox.CommonNS;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Blox.ConfigurationNS
 {
-    public abstract class EntityType
+    public abstract class EntityType : IEntityType
     {
-        public readonly int id;
-        public readonly string name;
-        public readonly Sprite icon;
-
-        protected EntityType(JsonTextReader reader)
+        public enum Type
         {
-            reader.NextPropertyValue("id", out id);
-            reader.NextPropertyValue("name", out name);
-            reader.NextPropertyValue("icon", out icon);
+            Block,
+            CreatableBlock,
+            CreatableModel
+        }
+        
+        public int id { get; }
+        public  string name { get; }
+        public  Sprite icon { get; }
+        public  int itemId { get; }
+
+        public EntityType ItemType => configuration.GetEntityType<EntityType>(itemId);
+        
+        protected readonly Configuration configuration;
+        
+        protected EntityType([NotNull] JsonTextReader reader, [NotNull] Configuration configuration)
+        {
+            this.configuration = configuration;
+            
+            reader.NextPropertyValue("id", out int _id);
+            id = _id;
+            
+            reader.NextPropertyValue("name", out string _name);
+            name = _name;
+            
+            reader.NextPropertyValue("icon", out Sprite _icon);
+            icon = _icon;
+            
+            reader.NextPropertyValue("itemId", out int _itemId);
+            itemId = _itemId;
         }
 
         public override bool Equals(object obj)

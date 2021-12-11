@@ -49,6 +49,7 @@ namespace Blox.GameNS.ActionNS
             var inventory = m_GameManager.inventory;
             if (inventory.RemoveItem(out var entity))
             {
+                Log.Debug(this, $"Place {entity.name} to position {m_SelectedPosition}");
                 var chunkManager = m_GameManager.chunkManager;
                 chunkManager.SetEntity(m_SelectedPosition, entity, true, false);
             }

@@ -12,7 +12,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
     {
         internal class Product
         {
-            public CreatableType creatable;
+            public CreatableType Creatable;
             public float timer;
             public GameObject queueItem;
         }
@@ -30,7 +30,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
         public void CreateItem(CreatableType creatableType)
         {
             var product = new Product();
-            product.creatable = creatableType;
+            product.Creatable = creatableType;
             product.timer = creatableType.duration;
             product.queueItem = Instantiate(m_QueuePrefab, m_QueueParent.transform);
             UpdateQueueItem(product);
@@ -52,7 +52,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
                 reader.NextPropertyValue("timer", out float timer);
 
                 var product = new Product();
-                product.creatable = config.GetEntityType<CreatableType>(entityId);
+                product.Creatable = config.GetEntityType<CreatableBlockType>(entityId);
                 product.timer = timer;
                 product.queueItem = Instantiate(m_QueuePrefab, m_QueueParent.transform);
                 UpdateQueueItem(product);
@@ -67,7 +67,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
             foreach (var product in m_Products)
             {
                 writer.WriteStartObject();
-                writer.WriteProperty("entityId", product.creatable.id);
+                writer.WriteProperty("entityId", product.Creatable.id);
                 writer.WriteProperty("timer", product.timer);
                 writer.WriteEndObject();
             }
@@ -88,9 +88,9 @@ namespace Blox.UserInterfaceNS.CraftingWindow
                 if (product.timer <= 0f)
                 {
                     m_Products.RemoveAt(i);
-                    m_GameManager.inventory.AddItem(product.creatable, product.creatable.resultCount);
+                    m_GameManager.inventory.AddItem(product.Creatable, product.Creatable.resultCount);
                     Destroy(product.queueItem);
-                    onItemCrafted?.Invoke(this, product.creatable);
+                    onItemCrafted?.Invoke(this, product.Creatable);
                 }
                 else
                 {
@@ -103,12 +103,10 @@ namespace Blox.UserInterfaceNS.CraftingWindow
         {
             var qi = product.queueItem;
             var image = qi.GetComponentInChildren<Image>();
-            image.sprite = product.creatable.icon;
+            image.sprite = product.Creatable.icon;
             image.color = Color.white;
             var text = qi.GetComponentInChildren<Text>();
-            var minutes = Mathf.FloorToInt(product.timer / 60);
-            var seconds = Mathf.FloorToInt(product.timer - minutes * 60);
-            text.text = $"{minutes}:{seconds:00}";
+            text.text = Format.ToTimeStr(product.timer);
         }
     }
 }

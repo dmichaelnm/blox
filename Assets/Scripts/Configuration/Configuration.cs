@@ -129,15 +129,19 @@ namespace Blox.ConfigurationNS
             using (var reader = new JsonTextReader(new StringReader(asset.text)))
             {
                 reader.NextTokenIsStartObject();
-                reader.ForEachObject("blocks", index =>
+                reader.ForEachObject("entities", index =>
                 {
-                    var blockType = new BlockType(reader, this);
-                    m_EntityTypes.Add(blockType.id, blockType);
-                });
-                reader.ForEachObject("creatable", index =>
-                {
-                    var creatableType = new CreatableType(reader, this);
-                    m_EntityTypes.Add(creatableType.id, creatableType);
+                    reader.NextPropertyValue("type", out EntityType.Type type);
+                    EntityType entity = null;
+                    if (type == EntityType.Type.Block)
+                        entity = new BlockType(reader, this);
+                    else if (type == EntityType.Type.CreatableBlock)
+                        entity = new CreatableBlockType(reader, this);
+                    else if (type == EntityType.Type.CreatableModel)
+                        entity = new CreatableModelType(reader, this);
+
+                    if (entity != null)
+                        m_EntityTypes.Add(entity.id, entity);
                 });
                 reader.NextTokenIsEndObject();
             }

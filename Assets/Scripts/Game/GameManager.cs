@@ -54,6 +54,7 @@ namespace Blox.GameNS
         }
 
         public KeyCode craftingWindow = KeyCode.E;
+        public KeyCode rotation = KeyCode.R;
         public KeyCode pauseGame = KeyCode.Escape;
         public KeyCode showDebugInfo = KeyCode.F1;
         public KeyCode toggleMinimap = KeyCode.F2;
@@ -70,6 +71,7 @@ namespace Blox.GameNS
         public PlayerSelection.MouseButtonState? mouseButtonState { get; private set; }
         public Vector3? selectedPosition { get; private set; }
         public BlockFace? selectedBlockFace { get; private set; }
+        public EntityType selectedEntityType { get; private set; }
         public Inventory inventory => m_Inventory;
         public State state { get; private set; }
         public bool headUnderwater => m_Underwater.headUnderwater;
@@ -301,6 +303,7 @@ namespace Blox.GameNS
             mouseButtonState = eventargs.mouseButtonState;
             selectedPosition = eventargs.position;
             selectedBlockFace = eventargs.face;
+            selectedEntityType = eventargs.entityType;
             onBlockSelected?.Invoke(component, eventargs);
         }
 
@@ -309,6 +312,7 @@ namespace Blox.GameNS
             mouseButtonState = null;
             selectedPosition = null;
             selectedBlockFace = null;
+            selectedEntityType = null;
             onNoBlockSelected?.Invoke(component);
         }
 

@@ -71,7 +71,9 @@ namespace Blox.UserInterfaceNS
 
         private void OnBlockSelected(PlayerSelection component, PlayerSelection.SelectionState eventargs)
         {
-            m_SelectionValue.text = $"{eventargs.blockType.name} ({eventargs.face})";
+            // TODO implement also for models
+            if (eventargs.entityType != null)
+                m_SelectionValue.text = $"{eventargs.entityType.name} ({eventargs.face})";
         }
 
         private void ShowOrHideComponents()

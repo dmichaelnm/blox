@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace Blox.ConfigurationNS
 {
-    public class CreatableType : BlockType
+    public class CreatableType : EntityType
     {
         public class Ingredient
         {
@@ -23,7 +23,7 @@ namespace Blox.ConfigurationNS
         public readonly float duration;
         public readonly int resultCount;
         
-        public CreatableType(JsonTextReader reader, Configuration configuration) : base(reader, configuration)
+        protected CreatableType(JsonTextReader reader, Configuration configuration) : base(reader, configuration)
         {
             ingredients = new List<Ingredient>();
             reader.ForEachObject("ingredients", index =>

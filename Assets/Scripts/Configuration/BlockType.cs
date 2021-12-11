@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace Blox.ConfigurationNS
 {
-    public class BlockType : EntityType
+    public class BlockType : EntityType, IBlockType
     {
         public enum ID
         {
@@ -21,25 +21,25 @@ namespace Blox.ConfigurationNS
             Redstone = 9
         }
 
-        public readonly int itemId;
-        public readonly bool isSolid;
-        public readonly bool isFluid;
-        public readonly bool isSoil;
-        
+        public bool isSolid { get; }
+        public bool isFluid { get; }
+        public bool isSoil { get; }
         public bool isEmpty => id == (int)ID.Air;
-        public TextureType this[BlockFace face] => m_FaceTextures.ContainsKey(face) ? m_FaceTextures[face] : null;
-        public BlockType ItemBlockType => Configuration.GetInstance().GetEntityType<BlockType>(itemId);
 
         private readonly Dictionary<BlockFace, TextureType> m_FaceTextures;
 
-        public BlockType(JsonTextReader reader, Configuration configuration) : base(reader)
+        public BlockType(JsonTextReader reader, Configuration configuration) : base(reader, configuration)
         {
             m_FaceTextures = new Dictionary<BlockFace, TextureType>();
 
-            reader.NextPropertyValue("itemId", out itemId);
-            reader.NextPropertyValue("isSolid", out isSolid);
-            reader.NextPropertyValue("isFluid", out isFluid);
-            reader.NextPropertyValue("isSoil", out isSoil);
+            reader.NextPropertyValue("isSolid", out bool _isSolid);
+            isSolid = _isSolid;
+            
+            reader.NextPropertyValue("isFluid", out bool _isFluid);
+            isFluid = _isFluid;
+            
+            reader.NextPropertyValue("isSoil", out bool _isSoil);
+            isSoil = _isSoil;
 
             reader.ForEachProperty("faceTextures", (index, propertyName, value) =>
             {
@@ -61,6 +61,11 @@ namespace Blox.ConfigurationNS
                     m_FaceTextures.Add(face, textureType);
                 }
             });
+        }
+
+        public TextureType GetTextureType(BlockFace face)
+        {
+            return m_FaceTextures.ContainsKey(face) ? m_FaceTextures[face] : null;
         }
     }
 }

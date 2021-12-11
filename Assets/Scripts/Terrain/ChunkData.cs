@@ -59,7 +59,7 @@ namespace Blox.TerrainNS
         {
             if (chunkSize.IsValid(x, y, z))
             {
-                var id = m_BlockTypeIds[chunkSize.ToIndex(x, y, z)];
+                var id = m_BlockTypeIds[chunkSize.ToIndex(x, y, z)] & 0x3FFFFFFF;
                 return m_Configuration.GetEntityType<T>(id);
             }
 
@@ -96,27 +96,53 @@ namespace Blox.TerrainNS
             return chunkData.GetEntity<T>(x, y, z);
         }
 
+        public CreatableModelType.Rotation GetRotation(Vector3Int position)
+        {
+            return GetRotation(position.x, position.y, position.z);
+        }
+        
+        public CreatableModelType.Rotation GetRotation(int x, int y, int z)
+        {
+            if (chunkSize.IsValid(x, y, z))
+            {
+                var id = m_BlockTypeIds[chunkSize.ToIndex(x, y, z)];
+                return (CreatableModelType.Rotation)(int)((id & 0xC0000000) >> 30);
+            }
+
+            return CreatableModelType.Rotation.North;
+        }
+        
         public void SetEntity(Vector3Int position, int entityTypeId)
         {
             var entityType = m_Configuration.GetEntityType<EntityType>(entityTypeId);
             SetEntity(position, entityType);
         }
-        
+
         public void SetEntity(Vector3Int position, EntityType type)
         {
             SetEntity(position.x, position.y, position.z, type);
         }
 
-        public void SetEntity(int x, int y, int z, int typeId)
-        {
-            var entityType = m_Configuration.GetEntityType<EntityType>(typeId);
-            SetEntity(x, y, z, entityType);
-        }
-
-        public void SetEntity(int x, int y, int z, EntityType type)
+        public void SetEntity(int x, int y, int z, EntityType type,
+            CreatableModelType.Rotation rotation = CreatableModelType.Rotation.North)
         {
             if (chunkSize.IsValid(x, y, z))
+            {
                 m_BlockTypeIds[chunkSize.ToIndex(x, y, z)] = type.id;
+                SetRotation(x, y, z, rotation);
+            }
+        }
+
+        public void SetRotation(Vector3Int position, CreatableModelType.Rotation rotation)
+        {
+            SetRotation(position.x, position.y, position.z, rotation);
+        }
+        
+        public void SetRotation(int x, int y, int z, CreatableModelType.Rotation rotation)
+        {
+            var rt = (int)rotation << 30;
+            var id = (m_BlockTypeIds[chunkSize.ToIndex(x, y, z)] & 0x3FFFFFFF ) | rt;
+            m_BlockTypeIds[chunkSize.ToIndex(x, y, z)] = id;
         }
 
         public void ResetLastActivity()

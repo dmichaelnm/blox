@@ -38,9 +38,9 @@ namespace Blox.GameNS.ActionNS
         {
             var config = m_GameManager.configuration;
             var chunkManager = m_GameManager.chunkManager;
-            var blockType = chunkManager.GetEntity<BlockType>(m_SelectedPosition);
+            var entity = chunkManager.GetEntity<EntityType>(m_SelectedPosition);
 
-            if (m_GameManager.inventory.AddItem(blockType.ItemBlockType))
+            if (m_GameManager.inventory.AddItem(entity.ItemType))
             {
                 chunkManager.SetEntity(m_SelectedPosition, config.GetEntityType<BlockType>(BlockType.ID.Air));
             }

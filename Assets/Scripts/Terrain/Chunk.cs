@@ -39,6 +39,15 @@ namespace Blox.TerrainNS
         private bool m_CheckingLeaves;
         private float m_OrphanLeavesTimer;
         private System.Random m_Random;
+        private Dictionary<Vector3Int, Model> m_Models;
+
+        public Model GetModel(Vector3Int localPosition)
+        {
+            if (m_Models.ContainsKey(localPosition))
+                return m_Models[localPosition];
+
+            return null;
+        }
 
         public void UpdateMesh(bool asynchronious = false, Action callback = null, int entityTypeId = -1)
         {
@@ -61,6 +70,7 @@ namespace Blox.TerrainNS
         {
             m_ChunkManager = GetComponentInParent<ChunkManager>();
             m_Random = new System.Random(m_ChunkManager.generatorParams.randomSeed);
+            m_Models = new Dictionary<Vector3Int, Model>();
         }
 
         private void Update()
@@ -139,51 +149,87 @@ namespace Blox.TerrainNS
         private void BuildBlockMesh(Dictionary<TextureType, ChunkMesh> meshes, int x, int y, int z,
             int entityTypeId = -1)
         {
-            var blockType = chunkData.GetEntity<BlockType>(x, y, z);
-            if (blockType.isSolid && (entityTypeId == -1 || entityTypeId == blockType.id))
+            var entity = chunkData.GetEntity<EntityType>(x, y, z);
+            if (entity is IBlockType blockType)
             {
-                for (var f = 0; f < 6; f++)
+                if (blockType.isSolid && (entityTypeId == -1 || entityTypeId == blockType.id))
                 {
-                    var face = (BlockFace)f;
-                    var neighbour = chunkData.GetEntity<BlockType>(x, y, z, face);
-                    if (!(neighbour is { isSolid: true }))
+                    for (var f = 0; f < 6; f++)
+                    {
+                        var face = (BlockFace)f;
+                        var neighbour = chunkData.GetEntity<BlockType>(x, y, z, face);
+                        if (!(neighbour is { isSolid: true }))
+                        {
+                            BuildFaceMesh(
+                                meshes,
+                                x,
+                                y,
+                                z,
+                                face,
+                                blockType,
+                                ChunkMesh.Flags.CastShadow | ChunkMesh.Flags.CreateCollider,
+                                0f
+                            );
+                        }
+                    }
+                }
+                else if (blockType.isFluid)
+                {
+                    var neighbour = chunkData.GetEntity<BlockType>(x, y, z, BlockFace.Top);
+                    if (neighbour == null || neighbour.id != blockType.id)
                     {
                         BuildFaceMesh(
                             meshes,
                             x,
                             y,
                             z,
-                            face,
+                            BlockFace.Top,
                             blockType,
-                            ChunkMesh.Flags.CastShadow | ChunkMesh.Flags.CreateCollider,
-                            0f
+                            ChunkMesh.Flags.UseGlobalUV,
+                            m_ChunkManager.waterOffset
                         );
                     }
                 }
             }
-            else if (blockType.isFluid)
+            else if (entity is IModelType modelType)
             {
-                var neighbour = chunkData.GetEntity<BlockType>(x, y, z, BlockFace.Top);
-                if (neighbour == null || neighbour.id != blockType.id)
+                var objName = $"{modelType.name} {x}:{y}:{z}";
+                var modelObj = gameObject.GetChild(objName);
+                if (modelObj == null)
                 {
-                    BuildFaceMesh(
-                        meshes,
-                        x,
-                        y,
-                        z,
-                        BlockFace.Top,
-                        blockType,
-                        ChunkMesh.Flags.UseGlobalUV,
-                        m_ChunkManager.waterOffset
-                    );
+                    modelObj = new GameObject(objName);
+                    modelObj.transform.parent = transform;
+                    modelObj.transform.localPosition = new Vector3(x + 0.5f, y + 0.5f, z + 0.5f);
+
+                    var meshFilter = modelObj.GetOrAddComponent<MeshFilter>();
+                    meshFilter.mesh = modelType.mesh;
+
+                    var meshRenderer = modelObj.GetOrAddComponent<MeshRenderer>();
+                    meshRenderer.material = modelType.material;
+
+                    var meshCollider = modelObj.GetOrAddComponent<MeshCollider>();
+                    meshCollider.sharedMesh = m_ChunkManager.modelColliderMesh;
+
+                    var model = modelObj.GetOrAddComponent<Model>();
+                    m_Models.Add(new Vector3Int(x, y, z), model);
+
+                    var outline = modelObj.GetOrAddComponent<Outline>();
+                    outline.OutlineColor = Color.green;
+                    outline.OutlineMode = Outline.Mode.OutlineVisible;
+                    outline.OutlineWidth = 5f;
+                    outline.enabled = false;
+                    
+                    var rotation = chunkData.GetRotation(x, y, z);
+                    var angle = (int)rotation * 90f;
+                    modelObj.transform.rotation = Quaternion.Euler(0f, angle, 0f);
                 }
             }
         }
 
         private void BuildFaceMesh(Dictionary<TextureType, ChunkMesh> meshes, int x, int y, int z, BlockFace face,
-            BlockType blockType, ChunkMesh.Flags flags, float topOffset)
+            IBlockType blockType, ChunkMesh.Flags flags, float topOffset)
         {
-            var textureType = blockType[face];
+            var textureType = blockType.GetTextureType(face);
 
             if (!meshes.ContainsKey(textureType))
                 meshes.Add(textureType, new ChunkMesh(textureType, flags));
@@ -224,8 +270,22 @@ namespace Blox.TerrainNS
                 {
                     var child = transform.GetChild(i).gameObject;
                     var textureType = Configuration.GetInstance().GetTextureType(child.name);
-                    if (!meshes.ContainsKey(textureType))
-                        Destroy(child);
+                    if (textureType != null)
+                    {
+                        if (!meshes.ContainsKey(textureType))
+                            Destroy(child);
+                    }
+
+                    var model = child.GetComponent<Model>();
+                    if (model != null)
+                    {
+                        var position = model.transform.localPosition.ToVector3Int();
+                        if (chunkData.GetEntity<CreatableModelType>(position) == null)
+                        {
+                            m_Models.Remove(position);
+                            Destroy(child);
+                        }
+                    }
                 }
             }
         }
@@ -260,8 +320,11 @@ namespace Blox.TerrainNS
                         if (chunkSize.IsValid(rx, ry, rz))
                         {
                             var blockType = chunkData.GetEntity<BlockType>(rx, ry, rz);
-                            if (blockType.id == (int)BlockType.ID.Trunk)
-                                return false;
+                            if (blockType != null)
+                            {
+                                if (blockType.id == (int)BlockType.ID.Trunk)
+                                    return false;
+                            }
                         }
                     }
                 }

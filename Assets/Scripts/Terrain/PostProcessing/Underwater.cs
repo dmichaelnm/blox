@@ -100,40 +100,47 @@ namespace Blox.TerrainNS.PostProcessingNS
             var feetPosition = eventargs.currentFeetPosition.ToVector3Int();
             var feetBlockType = chunkManager.GetEntity<BlockType>(feetPosition);
 
-            if (feetBlockType.isFluid && !feetUnderwater)
+            if (feetBlockType != null)
             {
-                Log.Debug(this, "Players feets are underwater.");
-                feetUnderwater = true;
-                m_WaterSplash.Play();
-                onFeetUnderwater?.Invoke(this,true);
-            } else if (feetBlockType.isEmpty && feetUnderwater)
-            {
-                Log.Debug(this, "Players feets are dry.");
-                feetUnderwater = false;
-                onFeetUnderwater?.Invoke(this,false);
+                if (feetBlockType.isFluid && !feetUnderwater)
+                {
+                    Log.Debug(this, "Players feets are underwater.");
+                    feetUnderwater = true;
+                    m_WaterSplash.Play();
+                    onFeetUnderwater?.Invoke(this, true);
+                }
+                else if (feetBlockType.isEmpty && feetUnderwater)
+                {
+                    Log.Debug(this, "Players feets are dry.");
+                    feetUnderwater = false;
+                    onFeetUnderwater?.Invoke(this, false);
+                }
             }
-            
+
             // check if head is underwater
             var eyePosition = eventargs.currentEyePosition.ToVector3Int();
             var eyeBlockType = chunkManager.GetEntity<BlockType>(eyePosition);
-            
-            if (eyeBlockType.isFluid && !headUnderwater)
+
+            if (eyeBlockType != null)
             {
-                Log.Debug(this, "Players head is underwater.");
-                headUnderwater = true;
-                m_ColorAdjustments.colorFilter.overrideState = true;
-                m_DepthOfField.mode.overrideState = true;
-                m_LensDistortion.intensity.overrideState = true;
-                onHeadUnderwater?.Invoke(this, true);
-            }
-            else if (eyeBlockType.isEmpty && headUnderwater)
-            {
-                Log.Debug(this, "Players head is breathing air.");
-                headUnderwater = false;
-                m_ColorAdjustments.colorFilter.overrideState = false;
-                m_DepthOfField.mode.overrideState = false;
-                m_LensDistortion.intensity.overrideState = false;
-                onHeadUnderwater?.Invoke(this, false);
+                if (eyeBlockType.isFluid && !headUnderwater)
+                {
+                    Log.Debug(this, "Players head is underwater.");
+                    headUnderwater = true;
+                    m_ColorAdjustments.colorFilter.overrideState = true;
+                    m_DepthOfField.mode.overrideState = true;
+                    m_LensDistortion.intensity.overrideState = true;
+                    onHeadUnderwater?.Invoke(this, true);
+                }
+                else if (eyeBlockType.isEmpty && headUnderwater)
+                {
+                    Log.Debug(this, "Players head is breathing air.");
+                    headUnderwater = false;
+                    m_ColorAdjustments.colorFilter.overrideState = false;
+                    m_DepthOfField.mode.overrideState = false;
+                    m_LensDistortion.intensity.overrideState = false;
+                    onHeadUnderwater?.Invoke(this, false);
+                }
             }
         }
     }

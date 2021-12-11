@@ -1,5 +1,4 @@
-﻿using System;
-using Blox.ConfigurationNS;
+﻿using Blox.ConfigurationNS;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -9,7 +8,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
     public class CreateItemButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         public CraftingWindow craftingWindow;
-        public CreatableType creatable;
+        public CreatableType Creatable;
         public Image itemImage;
         public Text itemName;
         public Color selectedBackground;
@@ -33,7 +32,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
 
         public void OnClick()
         {
-            craftingWindow.OnChooseItem(creatable);            
+            craftingWindow.OnChooseItem(Creatable);            
         }
     }
 }

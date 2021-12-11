@@ -38,6 +38,7 @@ namespace Blox.TerrainNS
         public float cacheTimeout;
         public bool activeGame;
         public float removeOrphanLeafInterval;
+        public Mesh modelColliderMesh;
 
         public bool initialized { get; private set; }
         public ChunkPosition currentChunkPosition => m_ChunkPosition;
@@ -109,6 +110,20 @@ namespace Blox.TerrainNS
             return y;
         }
 
+        public Model GetModel(Vector3Int position)
+        {
+            var chunkPosition = ChunkPosition.From(chunkSize, position.x, position.z);
+            var chunkObj = gameObject.GetChild(chunkPosition.chunkName);
+            if (chunkObj != null)
+            {
+                var localPosition = chunkPosition.ToLocalPosition(chunkSize, position);
+                var chunk = chunkObj.GetComponent<Chunk>();
+                return chunk.GetModel(localPosition);
+            }
+
+            return null;
+        }
+        
         public T GetEntity<T>(Vector3Int position) where T : EntityType
         {
             var chunkPosition = ChunkPosition.From(chunkSize, position.x, position.z);
@@ -117,10 +132,12 @@ namespace Blox.TerrainNS
             return chunkData.GetEntity<T>(localPosition);
         }
 
-        public void SetEntity(int x, int y, int z, int typeId, bool refreshChunk = true, bool checkFluids = true)
+        public CreatableModelType.Rotation GetRotation(Vector3Int position)
         {
-            var entityType = m_GameManager.configuration.GetEntityType<EntityType>(typeId);
-            SetEntity(new Vector3Int(x,y,z), entityType, refreshChunk, checkFluids);    
+            var chunkPosition = ChunkPosition.From(chunkSize, position.x, position.z);
+            var localPosition = chunkPosition.ToLocalPosition(chunkSize, position);
+            var chunkData = this[chunkPosition];
+            return chunkData.GetRotation(localPosition);
         }
         
         public void SetEntity(Vector3Int position, EntityType type, bool refreshChunk = true, bool checkFluids = true)
@@ -151,6 +168,14 @@ namespace Blox.TerrainNS
                 foreach (var chunkPos in chunks)
                     UpdateChunk(chunkPos);
             }
+        }
+
+        public void SetRotation(Vector3Int position, CreatableModelType.Rotation rotation)
+        {
+            var chunkPosition = ChunkPosition.From(chunkSize, position.x, position.z);
+            var localPosition = chunkPosition.ToLocalPosition(chunkSize, position);
+            var chunkData = this[chunkPosition];
+            chunkData.SetRotation(localPosition, rotation);            
         }
 
         public void UpdateChunk(ChunkPosition chunkPosition)
@@ -451,7 +476,7 @@ namespace Blox.TerrainNS
                 {
                     var neighbourPos = position.Neighbour(face);
                     var neighbourBlockType = GetEntity<BlockType>(neighbourPos);
-                    if (neighbourBlockType.isFluid)
+                    if (neighbourBlockType != null && neighbourBlockType.isFluid)
                     {
                         var chunkPosition = ChunkPosition.From(chunkSize, position);
                         SetEntity(position, neighbourBlockType, false, false);

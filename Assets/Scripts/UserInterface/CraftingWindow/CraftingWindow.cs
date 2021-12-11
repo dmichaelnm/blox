@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using Blox.CommonNS;
 using Blox.ConfigurationNS;
 using Blox.GameNS;
@@ -22,6 +20,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
         [SerializeField] private GameObject m_IngredientPrefab;
         [SerializeField] private GameObject m_Result;
         [SerializeField] private Text m_TimeValue;
+        [SerializeField] private Text m_TimeValueShadow;
         [SerializeField] private Button m_ButtonCreate;
 
         private CreatableType m_CreatableType;
@@ -87,7 +86,8 @@ namespace Blox.UserInterfaceNS.CraftingWindow
             resultImage.color = creatable != null ? Color.white : Color.clear;
             var resultText = m_Result.GetComponentInChildren<Text>();
             resultText.text = creatable != null ? $"{creatable.resultCount}" : "";
-            m_TimeValue.text = creatable != null ? $"{creatable.duration}s" : "";
+            m_TimeValue.text = creatable != null ? Format.ToTimeStr(creatable.duration) : "";
+            m_TimeValueShadow.text = creatable != null ? Format.ToTimeStr(creatable.duration) : "";
             m_ButtonCreate.gameObject.SetActive(creatable != null);
         }
 
@@ -116,7 +116,7 @@ namespace Blox.UserInterfaceNS.CraftingWindow
                     createItemButton.itemImage.sprite = entity.icon;
                     createItemButton.itemName.text = entity.name;
                     createItemButton.craftingWindow = this;
-                    createItemButton.creatable = entity;
+                    createItemButton.Creatable = entity;
 
                     m_Creatables.Add(entity);
                 }
